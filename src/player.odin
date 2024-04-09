@@ -1,0 +1,127 @@
+package game
+
+import rl "vendor:raylib"
+import math "core:math"
+import time "core:time"
+import linalg "core:math/linalg"
+
+PLAYER_RADIUS               :: 10
+PLAYER_SPEED                :: 1000
+PLAYER_ACCELERATION         :: 1.0
+PLAYER_THRUST_EMIT_DELAY    :: 0.01
+PLAYER_THRUST_VOLUME_ATTACK :: 10
+
+Player :: struct {
+    pos : rl.Vector2,
+    vel : rl.Vector2,
+    spd : f32,
+    acc : f32,
+    rad : f32,
+}
+
+@(private) last_thruster_emit_tick : time.Tick
+@(private) thruster_volume         : f32 = 0
+
+init_player :: proc(using player : ^Player) {
+    half_width   := f32(rl.rlGetFramebufferWidth()) / 2
+    half_height  := f32(rl.rlGetFramebufferHeight()) / 2
+
+    pos      = { half_width, half_height }
+    rad      = PLAYER_RADIUS
+    spd      = PLAYER_SPEED
+    acc      = PLAYER_ACCELERATION
+}
+
+tick_player :: proc(using player : ^Player, particle_system : ^ParticleSystem, dt : f32) {
+    width   := f32(rl.rlGetFramebufferWidth())
+    height  := f32(rl.rlGetFramebufferHeight())
+
+    // Movement
+    {
+        move_left   := rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A);
+        move_right  := rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D);
+        move_up     := rl.IsKeyDown(.UP) || rl.IsKeyDown(.W);
+        move_down   := rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S);
+
+        thruster_emit_time_elapsed := time.duration_seconds(time.tick_since(last_thruster_emit_tick))
+        can_emit := thruster_emit_time_elapsed >= PLAYER_THRUST_EMIT_DELAY
+        
+        thruster_target_volume : f32 = 0
+
+        if move_left {
+            dir := rl.Vector2{-spd, 0}
+            vel = linalg.lerp(vel, dir, 1 - math.exp(-dt * acc))
+            thruster_target_volume += 1
+            if can_emit do emit_thruster_particles(pos, -dir)
+        }
+        if move_right {
+            dir := rl.Vector2{+spd, 0}
+            vel = linalg.lerp(vel, dir, 1 - math.exp(-dt * acc))
+            thruster_target_volume += 1
+            if can_emit do emit_thruster_particles(pos, -dir)
+        }
+        if move_up {
+            dir := rl.Vector2{0, -spd}
+            vel = linalg.lerp(vel, dir, 1 - math.exp(-dt * acc))
+            thruster_target_volume += 1
+            if can_emit do emit_thruster_particles(pos, -dir)
+        }
+        if move_down {
+            dir := rl.Vector2{0, +spd}
+            vel = linalg.lerp(vel, dir, 1 - math.exp(-dt * acc))
+            thruster_target_volume += 1
+            if can_emit do emit_thruster_particles(pos, -dir)
+        }
+
+        thruster_target_volume = math.saturate(thruster_target_volume)
+        thruster_volume = math.lerp(thruster_volume, thruster_target_volume, 1 - math.exp(-dt * PLAYER_THRUST_VOLUME_ATTACK))
+
+        rl.SetMusicVolume(sounds.thrust, thruster_volume)
+    }
+
+    // Edge collision
+    {
+        // Horizontal
+        if pos.x - rad < 0 {
+            pos.x = rad
+            vel.x *= -1;
+        }
+        if pos.x + rad > width {
+            pos.x = width - rad
+            vel.x *= -1;
+        }
+        // Vertical
+        if pos.y - rad < 0 {
+            pos.y = rad
+            vel.y *= -1;
+        }
+        if pos.y + rad > height {
+            pos.y = height - rad
+            vel.y *= -1;
+        }
+    }
+
+    pos += vel * dt
+}
+
+draw_player :: proc(using player : ^Player) {
+    rl.DrawCircleV(center = pos, radius = rad, color = rl.WHITE)
+}
+
+@(private) emit_thruster_particles :: proc(pos, dir : rl.Vector2) {
+    last_thruster_emit_tick = time.tick_now()
+    norm_dir := linalg.normalize(dir)
+    spawn_particles_direction(
+        particle_system = particle_system, 
+        center          = pos,
+        direction       = norm_dir, 
+        count           = 1, 
+        min_speed       = 200,
+        max_speed       = 1000,
+        min_lifetime    = 0.1,
+        max_lifetime    = 0.5,
+        color           = rl.GRAY,
+        angle           = .2,
+        drag            = 5,
+    )
+}
