@@ -22,7 +22,7 @@ ParticleSystem :: struct {
 tick_particles :: proc(using particle_system : ^ParticleSystem, dt: f32) {
     for i := 0; i < count; i += 1 {
         using particle := particles[i]
-        particle.vel *= 1.0 / (1.0 + drg * dt)
+        particle.vel *= 1 / (1 + drg * dt)
         particle.pos += particle.vel * dt
         particle.lif -= dt
         if particle.lif <= 0 {

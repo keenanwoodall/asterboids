@@ -14,7 +14,7 @@ ENEMY_WAVE_DURATION :: 7
 tick_waves :: proc(enemies : ^Enemies) {
     elapsed := time.duration_seconds(time.tick_since(last_wave_tick))
 
-    if elapsed > ENEMY_WAVE_DURATION || rl.IsKeyPressed(.SPACE) {
+    if elapsed > ENEMY_WAVE_DURATION /*|| rl.IsKeyPressed(.SPACE)*/ {
         wave_idx += 1
         last_wave_tick = time.tick_now()
         spawn_new_wave(enemy_count = wave_idx, enemies = enemies)

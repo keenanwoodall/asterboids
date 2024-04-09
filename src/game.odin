@@ -9,15 +9,14 @@ player          : ^Player
 enemies         : ^Enemies
 projectiles     : ^Projectiles
 sounds          : ^Sounds
-
-@(private) particle_system    : ^ParticleSystem
+particle_system : ^ParticleSystem
 
 load_game :: proc() {
     player          = new(Player)
     enemies         = new(Enemies)
     projectiles     = new(Projectiles)
     sounds          = new(Sounds)
-    particle_system   = new(ParticleSystem)
+    particle_system = new(ParticleSystem)
 
     init_player(player)
     init_enemies(enemies)
@@ -37,14 +36,14 @@ unload_game :: proc() {
 tick_game :: proc() {
     dt := rl.GetFrameTime();
 
-    if rl.IsKeyDown(.LEFT_SHIFT) do dt *= 0.05
+    //if rl.IsKeyDown(.LEFT_SHIFT) do dt *= 0.05
 
-    tick_player(player, particle_system, dt)
+    tick_player(player, dt)
     tick_player_weapon(player)
     tick_waves(enemies)
     tick_enemies(enemies, player, dt)
     tick_projectiles(projectiles, dt)
-    tick_projectiles_collision(projectiles, particle_system, enemies)
+    tick_projectiles_collision(projectiles, enemies)
     tick_particles(particle_system, dt)
     tick_sounds(sounds)
 }
@@ -55,6 +54,7 @@ draw_game :: proc() {
         draw_player(player)
         draw_enemies(enemies)
         draw_projectiles(projectiles)
+        draw_player_weapon(player)
         draw_particles(particle_system)
     rl.EndDrawing()
 }

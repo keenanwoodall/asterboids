@@ -36,6 +36,7 @@ init_enemies :: proc(using Enemies : ^Enemies) {
     count = 0
 }
 
+@(optimization_mode="speed")
 tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
     for i in 0..<count {
         using enemy := instances[i]

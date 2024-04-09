@@ -14,6 +14,7 @@ main :: proc() {
     for !rl.WindowShouldClose() {
        tick_game()
        draw_game()
+       rl.DrawFPS(10, 10)
     }
 
     rl.CloseAudioDevice()

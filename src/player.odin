@@ -5,7 +5,7 @@ import math "core:math"
 import time "core:time"
 import linalg "core:math/linalg"
 
-PLAYER_RADIUS               :: 10
+PLAYER_SIZE                 :: 20
 PLAYER_SPEED                :: 1000
 PLAYER_ACCELERATION         :: 1.0
 PLAYER_THRUST_EMIT_DELAY    :: 0.01
@@ -16,7 +16,7 @@ Player :: struct {
     vel : rl.Vector2,
     spd : f32,
     acc : f32,
-    rad : f32,
+    siz : f32,
 }
 
 @(private) last_thruster_emit_tick : time.Tick
@@ -27,12 +27,12 @@ init_player :: proc(using player : ^Player) {
     half_height  := f32(rl.rlGetFramebufferHeight()) / 2
 
     pos      = { half_width, half_height }
-    rad      = PLAYER_RADIUS
+    siz      = PLAYER_SIZE
     spd      = PLAYER_SPEED
     acc      = PLAYER_ACCELERATION
 }
 
-tick_player :: proc(using player : ^Player, particle_system : ^ParticleSystem, dt : f32) {
+tick_player :: proc(using player : ^Player, dt : f32) {
     width   := f32(rl.rlGetFramebufferWidth())
     height  := f32(rl.rlGetFramebufferHeight())
 
@@ -73,7 +73,7 @@ tick_player :: proc(using player : ^Player, particle_system : ^ParticleSystem, d
             if can_emit do emit_thruster_particles(pos, -dir)
         }
 
-        thruster_target_volume = math.saturate(thruster_target_volume)
+        thruster_target_volume = math.saturate(thruster_target_volume) * 0.2
         thruster_volume = math.lerp(thruster_volume, thruster_target_volume, 1 - math.exp(-dt * PLAYER_THRUST_VOLUME_ATTACK))
 
         rl.SetMusicVolume(sounds.thrust, thruster_volume)
@@ -82,21 +82,21 @@ tick_player :: proc(using player : ^Player, particle_system : ^ParticleSystem, d
     // Edge collision
     {
         // Horizontal
-        if pos.x - rad < 0 {
-            pos.x = rad
+        if pos.x - siz < 0 {
+            pos.x = siz
             vel.x *= -1;
         }
-        if pos.x + rad > width {
-            pos.x = width - rad
+        if pos.x + siz > width {
+            pos.x = width - siz
             vel.x *= -1;
         }
         // Vertical
-        if pos.y - rad < 0 {
-            pos.y = rad
+        if pos.y - siz < 0 {
+            pos.y = siz
             vel.y *= -1;
         }
-        if pos.y + rad > height {
-            pos.y = height - rad
+        if pos.y + siz > height {
+            pos.y = height - siz
             vel.y *= -1;
         }
     }
@@ -105,7 +105,8 @@ tick_player :: proc(using player : ^Player, particle_system : ^ParticleSystem, d
 }
 
 draw_player :: proc(using player : ^Player) {
-    rl.DrawCircleV(center = pos, radius = rad, color = rl.WHITE)
+    size := rl.Vector2{siz, siz}
+    rl.DrawRectangleV(position = pos - size/2, size = size, color = rl.WHITE)
 }
 
 @(private) emit_thruster_particles :: proc(pos, dir : rl.Vector2) {
