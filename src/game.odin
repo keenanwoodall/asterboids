@@ -25,12 +25,13 @@ load_game :: proc() {
 }
 
 unload_game :: proc() {
+    unload_enemies(enemies)
     free(player)
     free(enemies)
     free(projectiles)
-    unload_sounds(sounds)
-    free(sounds)
     free(particle_system)
+    free(sounds)
+    unload_sounds(sounds)
 }
 
 tick_game :: proc() {
@@ -50,11 +51,12 @@ tick_game :: proc() {
 
 draw_game :: proc() {
     rl.BeginDrawing()
-        rl.ClearBackground(rl.BLACK)
-        draw_player(player)
-        draw_enemies(enemies)
-        draw_projectiles(projectiles)
-        draw_player_weapon(player)
-        draw_particles(particle_system)
-    rl.EndDrawing()
+    defer rl.EndDrawing()
+    
+    rl.ClearBackground(rl.BLACK)
+    draw_player(player)
+    draw_enemies(enemies)
+    draw_projectiles(projectiles)
+    draw_player_weapon(player)
+    draw_particles(particle_system)
 }

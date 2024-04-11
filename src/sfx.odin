@@ -48,4 +48,11 @@ unload_sounds :: proc(using sounds : ^Sounds) {
 tick_sounds :: proc(using sounds : ^Sounds) {
     rl.UpdateMusicStream(music)
     rl.UpdateMusicStream(thrust)
+
+    if rl.IsKeyPressed(.M) {
+        if rl.IsMusicStreamPlaying(music) {
+            rl.PauseMusicStream(music)
+        } 
+        else do rl.ResumeMusicStream(music)
+    }
 }

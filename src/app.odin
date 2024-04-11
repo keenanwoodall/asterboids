@@ -6,8 +6,13 @@ import math "core:math"
 main :: proc() {
     rl.SetTraceLogLevel(.ERROR)
     rl.SetConfigFlags(rl.ConfigFlags { rl.ConfigFlag.MSAA_4X_HINT })
-    rl.InitWindow(width = 1280, height = 720, title = "Shooter")
+    rl.InitWindow(width = 1920, height = 1080, title = "Shooter")
     rl.InitAudioDevice()
+
+    defer {
+        rl.CloseAudioDevice()
+        rl.CloseWindow()
+    }
 
     load_game()
 
@@ -16,7 +21,4 @@ main :: proc() {
        draw_game()
        rl.DrawFPS(10, 10)
     }
-
-    rl.CloseAudioDevice()
-    rl.CloseWindow()
 }
