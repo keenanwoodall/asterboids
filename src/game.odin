@@ -1,24 +1,31 @@
 package game
+
 import fmt      "core:fmt"
 import time     "core:time"
 import math     "core:math"
 import linalg   "core:math/linalg"
 import rl       "vendor:raylib"
 
-player          : ^Player
-enemies         : ^Enemies
-waves           : ^Waves
-projectiles     : ^Projectiles
-audio           : ^Audio
-particle_system : ^ParticleSystem
+Game :: struct {
+    player          : ^Player,
+    enemies         : ^Enemies,
+    waves           : ^Waves,
+    projectiles     : ^Projectiles,
+    audio           : ^Audio,
+    pixel_particles : ^ParticleSystem,
+    line_particles  : ^ParticleSystem,
 
-load_game :: proc() {
+    request_restart : bool
+}
+
+load_game :: proc(using game : ^Game) {
     player          = new(Player)
     enemies         = new(Enemies)
     waves           = new(Waves)
     projectiles     = new(Projectiles)
     audio           = new(Audio)
-    particle_system = new(ParticleSystem)
+    pixel_particles = new(ParticleSystem)
+    line_particles = new(ParticleSystem)
 
     init_player(player)
     init_player_weapon()
@@ -27,31 +34,32 @@ load_game :: proc() {
     load_audio(audio)
 }
 
-unload_game :: proc() {
+unload_game :: proc(using game : ^Game) {
     unload_enemies(enemies)
     free(player)
     free(enemies)
     free(waves)
     free(projectiles)
-    free(particle_system)
+    free(pixel_particles)
+    free(line_particles)
     free(audio)
     unload_audio(audio)
 }
 
-tick_game :: proc() {
+tick_game :: proc(using game : ^Game) {
     dt := rl.GetFrameTime();
 
-    tick_player(player, dt)
-    tick_player_weapon(player)
+    tick_player(player, audio, pixel_particles, dt)
+    tick_player_weapon(player, audio, projectiles, pixel_particles)
     tick_waves(waves, enemies)
     tick_enemies(enemies, player, dt)
     tick_projectiles(projectiles, dt)
-    tick_projectiles_collision(projectiles, enemies)
-    tick_particles(particle_system, dt)
+    tick_projectiles_collision(projectiles, enemies, pixel_particles, audio)
+    tick_particles(pixel_particles, dt)
     tick_audio(audio)
 }
 
-draw_game :: proc() {
+draw_game :: proc(using game : ^Game) {
     rl.BeginDrawing()
     defer rl.EndDrawing()
     
@@ -60,5 +68,5 @@ draw_game :: proc() {
     draw_enemies(enemies)
     draw_projectiles(projectiles)
     draw_player_weapon(player)
-    draw_particles(particle_system)
+    draw_particles_as_pixels(pixel_particles)
 }

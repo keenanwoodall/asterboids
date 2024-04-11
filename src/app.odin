@@ -16,17 +16,19 @@ main :: proc() {
         rl.CloseWindow()
     }
 
-    load_game()
-    defer unload_game()
+    game := new(Game)
+
+    load_game(game)
+    defer unload_game(game)
 
     for !rl.WindowShouldClose() {
-        tick_game()
-        draw_game()
+        tick_game(game)
+        draw_game(game)
         rl.DrawFPS(10, 10)
 
         if rl.IsKeyPressed(.R) {
-            unload_game()
-            load_game()
+            unload_game(game)
+            load_game(game)
         }
     }
 }

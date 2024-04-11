@@ -9,7 +9,9 @@ MAX_PARTICLES :: 1024
 Particle :: struct {
     pos : rl.Vector2,
     vel : rl.Vector2,
+    siz : rl.Vector2,
     col : rl.Color,
+    rot : f32,
     lif : f32,
     drg : f32
 }
@@ -36,7 +38,24 @@ tick_particles :: proc(using particle_system : ^ParticleSystem, dt: f32) {
     }
 }
 
-draw_particles :: proc(using particle_system : ^ParticleSystem) {
+tick_particles_size :: proc(using particle_system : ^ParticleSystem, dt: f32) {
+    for i := 0; i < count; i += 1 {
+        using particle := particles[i]
+        particle.vel *= 1 / (1 + drg * dt)
+        particle.pos += particle.vel * dt
+        particle.lif -= dt
+        if particle.lif <= 0 {
+            release_particle(i, particle_system)
+            i -= 1
+        }
+        else {
+            particles[i] = particle
+            rl.DrawPixelV(pos, col)
+        }
+    }
+}
+
+draw_particles_as_pixels :: proc(using particle_system : ^ParticleSystem) {
     rl.rlSetLineWidth(2)
     for i in 0..<count {
         using particle := particles[i]
@@ -55,6 +74,12 @@ add_particle :: proc(newParticle : Particle, using particle_system : ^ParticleSy
 release_particle :: proc(index : int, using particle_system : ^ParticleSystem) {
     particles[index] = particles[count - 1]
     count -= 1
+}
+
+spawn_particles_triangle_segments :: proc(
+    particle_system : ^ParticleSystem, 
+    triangle : [3]rl.Vector2, color : rl.Color) {
+
 }
 
 spawn_particles_burst :: proc(

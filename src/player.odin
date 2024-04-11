@@ -1,9 +1,9 @@
 package game
 
-import rl "vendor:raylib"
-import math "core:math"
-import time "core:time"
-import linalg "core:math/linalg"
+import rl       "vendor:raylib"
+import math     "core:math"
+import time     "core:time"
+import linalg   "core:math/linalg"
 
 PLAYER_SIZE                 :: 20
 PLAYER_SPEED                :: 1000
@@ -34,7 +34,7 @@ init_player :: proc(using player : ^Player) {
     last_shoot_tick = {}
 }
 
-tick_player :: proc(using player : ^Player, dt : f32) {
+tick_player :: proc(using player : ^Player, audio : ^Audio, ps : ^ParticleSystem, dt : f32) {
     width   := f32(rl.rlGetFramebufferWidth())
     height  := f32(rl.rlGetFramebufferHeight())
 
@@ -54,25 +54,25 @@ tick_player :: proc(using player : ^Player, dt : f32) {
             dir := rl.Vector2{-spd, 0}
             vel = linalg.lerp(vel, dir, 1 - math.exp(-dt * acc))
             thruster_target_volume += 1
-            if can_emit do emit_thruster_particles(player, -dir)
+            if can_emit do emit_thruster_particles(player, ps, -dir)
         }
         if move_right {
             dir := rl.Vector2{+spd, 0}
             vel = linalg.lerp(vel, dir, 1 - math.exp(-dt * acc))
             thruster_target_volume += 1
-            if can_emit do emit_thruster_particles(player, -dir)
+            if can_emit do emit_thruster_particles(player, ps, -dir)
         }
         if move_up {
             dir := rl.Vector2{0, -spd}
             vel = linalg.lerp(vel, dir, 1 - math.exp(-dt * acc))
             thruster_target_volume += 1
-            if can_emit do emit_thruster_particles(player, -dir)
+            if can_emit do emit_thruster_particles(player, ps, -dir)
         }
         if move_down {
             dir := rl.Vector2{0, +spd}
             vel = linalg.lerp(vel, dir, 1 - math.exp(-dt * acc))
             thruster_target_volume += 1
-            if can_emit do emit_thruster_particles(player, -dir)
+            if can_emit do emit_thruster_particles(player, ps, -dir)
         }
 
         thruster_target_volume = math.saturate(thruster_target_volume) * 0.2
@@ -111,11 +111,11 @@ draw_player :: proc(using player : ^Player) {
     rl.DrawRectangleV(position = pos - size/2, size = size, color = rl.WHITE)
 }
 
-@(private) emit_thruster_particles :: proc(using player : ^Player, dir : rl.Vector2) {
+@(private) emit_thruster_particles :: proc(using player : ^Player, ps : ^ParticleSystem, dir : rl.Vector2) {
     player.last_thruster_emit_tick = time.tick_now()
     norm_dir := linalg.normalize(dir)
     spawn_particles_direction(
-        particle_system = particle_system, 
+        particle_system = ps, 
         center          = pos,
         direction       = norm_dir, 
         count           = 1, 

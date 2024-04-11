@@ -16,7 +16,7 @@ init_player_weapon :: proc() {
     last_shoot_tick = {}
 }
 
-tick_player_weapon :: proc(using player : ^Player) {
+tick_player_weapon :: proc(using player : ^Player, audio : ^Audio, projectiles : ^Projectiles, ps : ^ParticleSystem) {
     time_since_shoot := time.duration_seconds(time.tick_since(last_shoot_tick))
 
     if rl.IsMouseButtonDown(.LEFT) && time_since_shoot > SHOOT_DELAY {
@@ -31,10 +31,10 @@ tick_player_weapon :: proc(using player : ^Player) {
         // vfx
         weapon_tip      := get_weapon_tip(player)
         particle_dir    := get_weapon_dir(player)
-        spawn_particles_direction(particle_system, weapon_tip, +particle_dir, 10, min_speed = 300, max_speed = 2000, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.1, drag = 10)
+        spawn_particles_direction(ps, weapon_tip, +particle_dir, 10, min_speed = 300, max_speed = 2000, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.1, drag = 10)
         particle_dir     = rl.Vector2Rotate(particle_dir, math.PI / 2)
-        spawn_particles_direction(particle_system, weapon_tip, -particle_dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.2, drag = 10)
-        spawn_particles_direction(particle_system, weapon_tip, +particle_dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.2, drag = 10)
+        spawn_particles_direction(ps, weapon_tip, -particle_dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.2, drag = 10)
+        spawn_particles_direction(ps, weapon_tip, +particle_dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.2, drag = 10)
 
         add_projectile(
             newProjectile = Projectile {
@@ -57,7 +57,7 @@ tick_player_weapon :: proc(using player : ^Player) {
         // vfx
         weapon_tip      := get_weapon_tip(player)
         particle_dir    := get_weapon_dir(player)
-        spawn_particles_direction(particle_system, weapon_tip, +particle_dir, 10, min_speed = 300, max_speed = 2000, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.3, drag = 10)
+        spawn_particles_direction(ps, weapon_tip, +particle_dir, 10, min_speed = 300, max_speed = 2000, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.3, drag = 10)
 
         for i in 0..<8 {
             add_projectile(

@@ -8,7 +8,7 @@ import linalg   "core:math/linalg"
 import rl       "vendor:raylib"
 
 @(optimization_mode="speed")
-tick_projectiles_collision :: proc(projectiles : ^Projectiles, enemies : ^Enemies) {
+tick_projectiles_collision :: proc(projectiles : ^Projectiles, enemies : ^Enemies, ps : ^ParticleSystem, audio : ^Audio) {
     instances := projectiles.instances
     for proj_idx := 0; proj_idx < projectiles.count; proj_idx += 1 {
         proj := projectiles.instances[proj_idx]
@@ -30,7 +30,7 @@ tick_projectiles_collision :: proc(projectiles : ^Projectiles, enemies : ^Enemie
 
                 proj.dir = linalg.normalize(linalg.reflect(proj.dir, hit_normal))
                 projectiles.instances[proj_idx] = proj
-                spawn_particles_burst(particle_system, hit_point, 16, 50, 250, 0.05, 0.2, rl.YELLOW)
+                spawn_particles_burst(ps, hit_point, 16, 50, 250, 0.05, 0.2, rl.YELLOW)
 
                 if enemy.hp <= 0 {
                     try_play_sound(audio, audio.explosion, debounce = 0.1)
