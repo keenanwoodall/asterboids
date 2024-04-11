@@ -12,6 +12,10 @@ WEAPON_LENGTH   :: 30
 
 @(private) last_shoot_tick : time.Tick
 
+init_player_weapon :: proc() {
+    last_shoot_tick = {}
+}
+
 tick_player_weapon :: proc(using player : ^Player) {
     time_since_shoot := time.duration_seconds(time.tick_since(last_shoot_tick))
 
@@ -22,7 +26,7 @@ tick_player_weapon :: proc(using player : ^Player) {
         vel -= get_weapon_dir(player) * 100
 
         // sfx
-        rl.PlaySound(sounds.laser)
+        try_play_sound(audio, audio.laser, debounce = 0.05)
 
         // vfx
         weapon_tip      := get_weapon_tip(player)
@@ -48,7 +52,7 @@ tick_player_weapon :: proc(using player : ^Player) {
         vel -= get_weapon_dir(player) * 500
 
         // sfx
-        rl.PlaySound(sounds.laser)
+        try_play_sound(audio, audio.laser, debounce = 0.05)
 
         // vfx
         weapon_tip      := get_weapon_tip(player)

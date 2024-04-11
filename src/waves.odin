@@ -8,42 +8,36 @@ import rl       "vendor:raylib"
 ENEMY_SPAWN_PADDING :: 100
 ENEMY_WAVE_DURATION :: 7
 
-BorderSpawner         :: proc(i, ct, evt_idx:int) -> rl.Vector2 { return random_screen_border_position(ENEMY_SPAWN_PADDING * rand.float32_range(1, 2)) }
-FillSpawner           :: proc(i, ct, evt_idx:int) -> rl.Vector2 { return random_screen_position() }
-BorderGroupSpawner    :: proc(i, ct, evt_idx:int) -> rl.Vector2 {
-    rand.init(&group_rand, u64(evt_idx))
-
-    padding :f32= ENEMY_SPAWN_PADDING * rand.float32_range(1, 2)
-    origin  := random_screen_border_position(padding, &group_rand)
-    origin  += {
-        rand.float32_range(-ENEMY_SPAWN_PADDING, ENEMY_SPAWN_PADDING), 
-        rand.float32_range(-ENEMY_SPAWN_PADDING, ENEMY_SPAWN_PADDING)
-    }
-
-    return origin
+Waves :: struct {
+    last_wave_tick   : time.Tick,
+    wave_idx         : int,
+    spawn_event_idx  : int,
+    group_rand       : rand.Rand,
 }
 
-@(private) last_wave_tick   : time.Tick
-@(private) wave_idx         :int= 0
-@(private) spawn_event_idx  :int= 0
-@(private) group_rand       := rand.create(12345)
+init_waves :: proc(using waves : ^Waves) {
+    spawn_event_idx = 0
+    wave_idx        = 0
+    last_wave_tick  = {}
+    group_rand      = rand.create(12345)
+}
 
-tick_waves :: proc(enemies : ^Enemies) {
-    elapsed := time.duration_seconds(time.tick_since(last_wave_tick))
+tick_waves :: proc(waves : ^Waves, enemies : ^Enemies) {
+    elapsed := time.duration_seconds(time.tick_since(waves.last_wave_tick))
 
-    if elapsed > ENEMY_WAVE_DURATION /*|| rl.IsKeyPressed(.SPACE)*/ {
-        wave_idx += 1
-        last_wave_tick = time.tick_now()
-        spawn_new_wave(enemy_count = wave_idx, enemies = enemies, spawner_proc = BorderGroupSpawner)
+    if elapsed > ENEMY_WAVE_DURATION {
+        waves.wave_idx += 1
+        waves.last_wave_tick = time.tick_now()
+        spawn_new_wave(waves.wave_idx, waves, enemies, OffscreenClusterSpawner)
     }
 
     if rl.IsKeyPressed(.SPACE) {
-        spawn_new_wave(enemy_count = 100, enemies = enemies, spawner_proc = BorderGroupSpawner)
+        spawn_new_wave(100, waves, enemies, OffscreenClusterSpawner)
     }
 }
 
 @(private)
-spawn_new_wave :: proc(enemy_count : int, enemies : ^Enemies, spawner_proc : proc(i, count, idx:int)->rl.Vector2) {
+spawn_new_wave :: proc(enemy_count : int, waves : ^Waves, enemies : ^Enemies, spawner_proc : proc(i, count:int, waves: ^Waves)->rl.Vector2) {
     Archetype :: struct { size : f32, hp : int, color : rl.Color}
     archetypes := [?]Archetype {
         {ENEMY_SIZE * 1.0, 1, rl.RED},
@@ -51,12 +45,12 @@ spawn_new_wave :: proc(enemy_count : int, enemies : ^Enemies, spawner_proc : pro
         {ENEMY_SIZE * 2.0, 3, rl.SKYBLUE} 
     }
 
-    spawn_event_idx += 1
+    waves.spawn_event_idx += 1
 
     for i in 0..<enemy_count * 2 {
         archetype := rand.choice(archetypes[:])
         new_enemy : Enemy = {
-            pos = spawner_proc(i, enemy_count, spawn_event_idx),
+            pos = spawner_proc(i, enemy_count, waves),
             vel = rl.Vector2Rotate({0, 1}, rand.float32_range(0, linalg.TAU)) * ENEMY_SPEED,
             siz = archetype.size,
             hp  = archetype.hp,
@@ -90,4 +84,19 @@ random_screen_border_position :: proc(padding : f32 = 0, r : ^rand.Rand = nil) -
     corner_idx_next := (corner_idx + 1) % 4
 
     return linalg.lerp(corners[corner_idx], corners[corner_idx_next], rand.float32_range(0, 1, r))
+}
+
+OffscreenSpawner        :: proc(i, ct:int, waves: ^Waves) -> rl.Vector2 { return random_screen_border_position(ENEMY_SPAWN_PADDING * rand.float32_range(1, 2)) }
+OnScreenSpawner         :: proc(i, ct:int, waves: ^Waves) -> rl.Vector2 { return random_screen_position() }
+OffscreenClusterSpawner :: proc(i, ct:int, waves: ^Waves) -> rl.Vector2 {
+    rand.init(&waves.group_rand, u64(waves.spawn_event_idx))
+
+    padding :f32= ENEMY_SPAWN_PADDING * rand.float32_range(1, 2)
+    origin  := random_screen_border_position(padding, &waves.group_rand)
+    origin  += {
+        rand.float32_range(-ENEMY_SPAWN_PADDING, ENEMY_SPAWN_PADDING), 
+        rand.float32_range(-ENEMY_SPAWN_PADDING, ENEMY_SPAWN_PADDING)
+    }
+
+    return origin
 }

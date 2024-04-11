@@ -1,18 +1,29 @@
 package game
-import fmt "core:fmt"
+
+import fmt  "core:fmt"
+import time "core:time"
+import rand "core:math/rand"
 import rl   "vendor:raylib"
 
-Sounds :: struct {
-    music       : rl.Music,
-    laser       : rl.Sound,
-    dash        : rl.Sound,
-    pickup      : rl.Sound,
-    explosion    : rl.Sound,
-    impact      : rl.Sound,
-    thrust      : rl.Music,
+SoundHistory :: struct {
+    last_play_time : time.Time
 }
 
-load_sounds :: proc(using sounds : ^Sounds) {
+Audio :: struct {
+    music           : rl.Music,
+    laser           : rl.Sound,
+    dash            : rl.Sound,
+    pickup          : rl.Sound,
+    explosion       : rl.Sound,
+    impact          : rl.Sound,
+    thrust          : rl.Music,
+
+    sound_history   : map[rl.Sound]SoundHistory
+}
+
+load_audio :: proc(using audio : ^Audio) {
+    sound_history   = make(map[rl.Sound]SoundHistory)
+
     music           = rl.LoadMusicStream("res/music/gameplay.wav")
     thrust          = rl.LoadMusicStream("res/music/thrust.wav")
 
@@ -35,7 +46,9 @@ load_sounds :: proc(using sounds : ^Sounds) {
     rl.PlayMusicStream(thrust)
 }
 
-unload_sounds :: proc(using sounds : ^Sounds) {
+unload_audio :: proc(using audio : ^Audio) {
+    delete(sound_history)
+
     rl.UnloadMusicStream(music)
     rl.UnloadMusicStream(thrust)
     rl.UnloadSound(laser)
@@ -45,7 +58,7 @@ unload_sounds :: proc(using sounds : ^Sounds) {
     rl.UnloadSound(impact)
 }
 
-tick_sounds :: proc(using sounds : ^Sounds) {
+tick_audio :: proc(using audio : ^Audio) {
     rl.UpdateMusicStream(music)
     rl.UpdateMusicStream(thrust)
 
@@ -55,4 +68,20 @@ tick_sounds :: proc(using sounds : ^Sounds) {
         } 
         else do rl.ResumeMusicStream(music)
     }
+}
+
+try_play_sound :: proc(using audio : ^Audio, sound : rl.Sound, debounce := 0.1, pitch_variance :f32= 0.3) {
+    now             := time.now()
+    history, exists := sound_history[sound]
+    if exists {
+        if time.duration_seconds(time.since(history.last_play_time)) < debounce {
+            return
+        }
+    }
+
+    sound_history[sound] = { last_play_time = now }
+
+    if !rl.IsSoundPlaying(sound) do rl.SetSoundPitch(sound, 1 + rand.float32_range(-pitch_variance, pitch_variance))
+
+    rl.PlaySound(sound)
 }

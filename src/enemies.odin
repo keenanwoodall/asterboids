@@ -17,14 +17,14 @@ ENEMY_SEPARATION_RADIUS :: 20
 ENEMY_FOLLOW_FACTOR     :: 2.0
 ENEMY_ALIGNMENT_FACTOR  :: 1.0
 ENEMY_COHESION_FACTOR   :: 1.25
-ENEMY_SEPARATION_FACTOR :: 15.0
+ENEMY_SEPARATION_FACTOR :: 6.0
 
 Enemy :: struct {
     pos : rl.Vector2,
     vel : rl.Vector2,
     siz : f32,
     hp  : int,
-    col : rl.Color
+    col : rl.Color,
 }
 
 Enemies :: struct {
@@ -35,13 +35,14 @@ Enemies :: struct {
 
 init_enemies :: proc(using enemies : ^Enemies) {
     count       = 0
-    grid  = new(HGrid(Enemy))
+    grid        = new(HGrid(Enemy))
     cell_size   : f32 = max(ENEMY_ALIGNMENT_RADIUS, ENEMY_COHESION_RADIUS, ENEMY_SEPARATION_RADIUS)
     init_cell_data(grid, cell_size)
 }
 
 unload_enemies :: proc(using enemies : ^Enemies) {
     delete_cell_data(grid)
+    free(grid)
 }
 
 @(optimization_mode="speed")
@@ -97,32 +98,6 @@ follow :: proc(index : int, using enemies : ^Enemies, target : rl.Vector2) -> rl
     return steering
 }
 
-@(private)
-alignment_slow :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
-    current         := instances[index]
-    steering        := rl.Vector2{}
-    neighbor_count  := 0
-
-    for other, i in instances[0:count] {
-        if i == index do continue
-
-        dist := linalg.distance(current.pos, other.pos)
-        if dist > ENEMY_ALIGNMENT_RADIUS do continue
-
-        steering += other.vel
-        neighbor_count += 1
-    }
-
-    if neighbor_count > 0 {
-        steering /= f32(neighbor_count)
-        steering = set_length(steering, ENEMY_SPEED)
-        steering -= current.vel
-        steering = limit_length(steering, ENEMY_FORCE)
-    }
-
-    return steering
-}
-
 alignment :: proc(index : int, using enemies : ^Enemies) -> rl.Vector2 {
     enemy           := instances[index]
     steering        := rl.Vector2{}
@@ -157,34 +132,8 @@ alignment :: proc(index : int, using enemies : ^Enemies) -> rl.Vector2 {
 }
 
 @(private)
-cohesion_slow :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
-    current         := instances[index]
-    steering        := rl.Vector2{}
-    neighbor_count  := 0
-    for other, i in instances[0:count] {
-        if i == index do continue
-
-        dist := linalg.distance(current.pos, other.pos)
-        if dist > ENEMY_COHESION_RADIUS do continue
-
-        steering += other.pos
-        neighbor_count += 1
-    }
-
-    if neighbor_count > 0 {
-        steering /= f32(neighbor_count)
-        steering -= current.pos
-        steering = set_length(steering, ENEMY_SPEED)
-        steering -= current.vel
-        steering = limit_length(steering, ENEMY_FORCE)
-    }
-
-    return steering
-}
-
-@(private)
 cohesion :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
-    enemy         := instances[index]
+    enemy           := instances[index]
     steering        := rl.Vector2{}
     neighbor_count  := 0
     cell_coord      := get_cell_coord(grid, enemy.pos)
@@ -211,34 +160,6 @@ cohesion :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
         steering -= enemy.pos
         steering = set_length(steering, ENEMY_SPEED)
         steering -= enemy.vel
-        steering = limit_length(steering, ENEMY_FORCE)
-    }
-
-    return steering
-}
-
-@(private)
-separation_slow :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
-    current         := instances[index]
-    steering        := rl.Vector2{}
-    neighbor_count  := 0
-
-    for other, i in instances[0:count] {
-        if i == index do continue
-
-        dist := linalg.distance(current.pos, other.pos) - (current.siz + other.siz)
-        if dist > ENEMY_SEPARATION_RADIUS do continue
-
-        diff := current.pos - other.pos
-        diff /= dist * dist
-        steering += diff
-        neighbor_count  += 1
-    }
-
-    if neighbor_count > 0 {
-        steering /= f32(neighbor_count)
-        steering = set_length(steering, ENEMY_SPEED)
-        steering -= current.vel
         steering = limit_length(steering, ENEMY_FORCE)
     }
 

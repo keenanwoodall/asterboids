@@ -23,21 +23,8 @@ init_projectiles :: proc(using projectiles : ^Projectiles) {
 
 tick_projectiles :: proc(using projectiles : ^Projectiles, dt : f32) {
 
-    projectile_offscreen :: proc(pos : rl.Vector2) -> bool {
-        width   := f32(rl.GetScreenWidth())
-        height  := f32(rl.GetScreenHeight())
-        if pos[0] < 0 || pos[0] > width do return true
-        if pos[1] < 0 || pos[1] > height do return true
-        
-        return false
-    }
-
     for i := 0; i < count; i += 1 {
         instances[i].pos += instances[i].dir * instances[i].spd * dt
-        if projectile_offscreen(instances[i].pos) {
-            release_projectile(i, projectiles)
-            i -= 1
-        }
     }
 }
 

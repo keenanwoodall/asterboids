@@ -7,46 +7,48 @@ import rl       "vendor:raylib"
 
 player          : ^Player
 enemies         : ^Enemies
+waves           : ^Waves
 projectiles     : ^Projectiles
-sounds          : ^Sounds
+audio           : ^Audio
 particle_system : ^ParticleSystem
 
 load_game :: proc() {
     player          = new(Player)
     enemies         = new(Enemies)
+    waves           = new(Waves)
     projectiles     = new(Projectiles)
-    sounds          = new(Sounds)
+    audio           = new(Audio)
     particle_system = new(ParticleSystem)
 
     init_player(player)
+    init_player_weapon()
     init_enemies(enemies)
     init_projectiles(projectiles)
-    load_sounds(sounds)
+    load_audio(audio)
 }
 
 unload_game :: proc() {
     unload_enemies(enemies)
     free(player)
     free(enemies)
+    free(waves)
     free(projectiles)
     free(particle_system)
-    free(sounds)
-    unload_sounds(sounds)
+    free(audio)
+    unload_audio(audio)
 }
 
 tick_game :: proc() {
     dt := rl.GetFrameTime();
 
-    //if rl.IsKeyDown(.LEFT_SHIFT) do dt *= 0.05
-
     tick_player(player, dt)
     tick_player_weapon(player)
-    tick_waves(enemies)
+    tick_waves(waves, enemies)
     tick_enemies(enemies, player, dt)
     tick_projectiles(projectiles, dt)
     tick_projectiles_collision(projectiles, enemies)
     tick_particles(particle_system, dt)
-    tick_sounds(sounds)
+    tick_audio(audio)
 }
 
 draw_game :: proc() {
