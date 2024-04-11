@@ -25,7 +25,9 @@ load_game :: proc(using game : ^Game) {
     projectiles     = new(Projectiles)
     audio           = new(Audio)
     pixel_particles = new(ParticleSystem)
-    line_particles = new(ParticleSystem)
+    line_particles  = new(ParticleSystem)
+
+    request_restart = false
 
     init_player(player)
     init_player_weapon()
@@ -55,6 +57,7 @@ tick_game :: proc(using game : ^Game) {
     tick_enemies(enemies, player, dt)
     tick_projectiles(projectiles, dt)
     tick_projectiles_collision(projectiles, enemies, pixel_particles, audio)
+    release_killed_enemies(enemies, line_particles)
     tick_particles(pixel_particles, dt)
     tick_audio(audio)
 }

@@ -16,7 +16,7 @@
 - ~~sfx debounce~~
 - enemy death vfx
 - enemy trail
-- thruster sfx popping
+- fix thruster sfx popping
 - ~~sfx pitch variance~~
 - star field
 - blur trail

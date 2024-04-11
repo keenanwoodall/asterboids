@@ -26,7 +26,7 @@ main :: proc() {
         draw_game(game)
         rl.DrawFPS(10, 10)
 
-        if rl.IsKeyPressed(.R) {
+        if game.request_restart || rl.IsKeyPressed(.R) {
             unload_game(game)
             load_game(game)
         }

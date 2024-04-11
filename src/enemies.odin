@@ -20,11 +20,12 @@ ENEMY_COHESION_FACTOR   :: 1.25
 ENEMY_SEPARATION_FACTOR :: 6.0
 
 Enemy :: struct {
-    pos : rl.Vector2,
-    vel : rl.Vector2,
-    siz : f32,
-    hp  : int,
-    col : rl.Color,
+    pos     : rl.Vector2,
+    vel     : rl.Vector2,
+    siz     : f32,
+    col     : rl.Color,
+    hp      : int,
+    kill    : bool
 }
 
 Enemies :: struct {
@@ -75,11 +76,19 @@ tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
     }
 }
 
+@(optimization_mode="speed")
+release_killed_enemies :: proc(using enemies : ^Enemies, ps : ^ParticleSystem) {
+    for i in 0..<count {
+        using enemy := instances[i]
+        if kill do release_enemy(i, enemies)
+    }
+}
+
 draw_enemies :: proc(using enemies : ^Enemies) {
     rl.rlSetLineWidth(3)
     for i in 0..<count {
-        using inst  := instances[i]
-        corners     := get_enemy_corners(inst)
+        using enemy := instances[i]
+        corners     := get_enemy_corners(enemy)
         rl.DrawTriangle(corners[0], corners[2], corners[1], col)
     }
 
