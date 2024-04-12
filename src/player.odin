@@ -35,7 +35,6 @@ init_player :: proc(using player : ^Player) {
     spd = PLAYER_SPEED
     acc = PLAYER_ACCELERATION
     thruster_volume = 0
-    last_shoot_tick = {}
 }
 
 tick_player :: proc(using player : ^Player, audio : ^Audio, ps : ^ParticleSystem, dt : f32) {

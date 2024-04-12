@@ -8,6 +8,7 @@ import rl       "vendor:raylib"
 
 Game :: struct {
     player          : ^Player,
+    weapon          : ^Weapon,
     enemies         : ^Enemies,
     waves           : ^Waves,
     projectiles     : ^Projectiles,
@@ -20,6 +21,7 @@ Game :: struct {
 
 load_game :: proc(using game : ^Game) {
     player          = new(Player)
+    weapon          = new(Weapon)
     enemies         = new(Enemies)
     waves           = new(Waves)
     projectiles     = new(Projectiles)
@@ -30,7 +32,7 @@ load_game :: proc(using game : ^Game) {
     request_restart = false
 
     init_player(player)
-    init_player_weapon()
+    init_weapon(weapon)
     init_enemies(enemies)
     init_projectiles(projectiles)
     load_audio(audio)
@@ -39,6 +41,7 @@ load_game :: proc(using game : ^Game) {
 unload_game :: proc(using game : ^Game) {
     unload_enemies(enemies)
     free(player)
+    free(weapon)
     free(enemies)
     free(waves)
     free(projectiles)
@@ -52,7 +55,7 @@ tick_game :: proc(using game : ^Game) {
     dt := rl.GetFrameTime();
 
     tick_player(player, audio, pixel_particles, dt)
-    tick_player_weapon(player, audio, projectiles, pixel_particles)
+    tick_player_weapon(weapon, player, audio, projectiles, pixel_particles)
 
     tick_waves(waves, enemies)
     tick_enemies(enemies, player, dt)
