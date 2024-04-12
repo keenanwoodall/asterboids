@@ -53,13 +53,21 @@ tick_game :: proc(using game : ^Game) {
 
     tick_player(player, audio, pixel_particles, dt)
     tick_player_weapon(player, audio, projectiles, pixel_particles)
+
     tick_waves(waves, enemies)
     tick_enemies(enemies, player, dt)
+
+    tick_player_enemy_collision_(player, enemies, line_particles, dt)
+
     tick_projectiles(projectiles, dt)
-    tick_projectiles_collision(projectiles, enemies, pixel_particles, audio)
+    tick_projectiles_screen_collision(projectiles)
+    tick_projectiles_enemy_collision(projectiles, enemies, pixel_particles, audio)
+
     release_killed_enemies(enemies, line_particles)
+
     tick_particles(pixel_particles, dt)
     tick_particles(line_particles, dt)
+
     tick_audio(audio)
 
     request_restart = rl.IsKeyPressed(.R)

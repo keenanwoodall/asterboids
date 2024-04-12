@@ -18,6 +18,8 @@ init_player_weapon :: proc() {
 }
 
 tick_player_weapon :: proc(using player : ^Player, audio : ^Audio, projectiles : ^Projectiles, ps : ^ParticleSystem) {
+    if !alive do return
+
     time_since_shoot := time.duration_seconds(time.tick_since(last_shoot_tick))
 
     if rl.IsMouseButtonDown(.LEFT) && time_since_shoot > SHOOT_DELAY {
@@ -75,6 +77,8 @@ tick_player_weapon :: proc(using player : ^Player, audio : ^Audio, projectiles :
 }
 
 draw_player_weapon :: proc(using player : ^Player) {
+    if !alive do return
+    
     weapon_rect  := rl.Rectangle{pos.x, pos.y, WEAPON_WIDTH, WEAPON_LENGTH}
     weapon_pivot := rl.Vector2{WEAPON_WIDTH / 2, 0}
     weapon_angle := get_weapon_deg(player)

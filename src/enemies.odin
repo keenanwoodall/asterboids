@@ -63,7 +63,9 @@ tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
 
         // Sum steering forces
         steer_force := rl.Vector2{}
-        steer_force += follow(i, enemies, player.pos) * ENEMY_FOLLOW_FACTOR
+        if player.alive {
+            steer_force += follow(i, enemies, player.pos) * ENEMY_FOLLOW_FACTOR
+        }
         steer_force += alignment(i, enemies) * ENEMY_ALIGNMENT_FACTOR
         steer_force += cohesion(i, enemies) * ENEMY_COHESION_FACTOR
         steer_force += separation(i, enemies) * ENEMY_SEPARATION_FACTOR

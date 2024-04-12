@@ -123,6 +123,7 @@ spawn_particles_triangle_segments :: proc(
 spawn_particles_burst :: proc(
     particle_system : ^ParticleSystem, 
     center          : rl.Vector2, 
+    velocity        : rl.Vector2,
     count           : int, 
     min_speed       : f32,
     max_speed       : f32,
@@ -131,15 +132,19 @@ spawn_particles_burst :: proc(
     color           : rl.Color,
     start_angle     : f32 = 0.0,
     end_angle       : f32 = math.TAU,
-    drag            : f32 = 0) {
+    drag            : f32 = 0,
+    size            := rl.Vector2{1, 1},
+    angle_offset    :f32= 0,) {
         
     for i in 0..<count {
         speed           := rand.float32_range(min_speed, max_speed)
         angle           := rand.float32_range(start_angle, end_angle)
         new_particle    := Particle {
             pos = center,
-            vel = rl.Vector2Rotate({0, speed}, angle),
+            vel = rl.Vector2Rotate({0, speed}, angle) + velocity,
+            rot = angle - math.PI / 2 + angle_offset,
             col = color,
+            siz = size,
             dur = rand.float32_range(min_duration, max_duration),
             vdg = drag
         }

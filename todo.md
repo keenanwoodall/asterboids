@@ -7,8 +7,7 @@
 - ~~enemies~~
 - ~~enemy collision~~
 - debug gui
-- smooth enemy turning
-- pickups
+- ~~smooth enemy turning~~
 - multithreading
 - pickups
 - dash

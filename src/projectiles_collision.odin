@@ -8,7 +8,7 @@ import linalg   "core:math/linalg"
 import rl       "vendor:raylib"
 
 @(optimization_mode="speed")
-tick_projectiles_collision :: proc(projectiles : ^Projectiles, enemies : ^Enemies, ps : ^ParticleSystem, audio : ^Audio) {
+tick_projectiles_screen_collision :: proc(projectiles : ^Projectiles) {
     instances := projectiles.instances
     for proj_idx := 0; proj_idx < projectiles.count; proj_idx += 1 {
         proj := projectiles.instances[proj_idx]
@@ -18,6 +18,13 @@ tick_projectiles_collision :: proc(projectiles : ^Projectiles, enemies : ^Enemie
             proj_idx -= 1
             continue
         }
+    }
+}
+@(optimization_mode="speed")
+tick_projectiles_enemy_collision :: proc(projectiles : ^Projectiles, enemies : ^Enemies, ps : ^ParticleSystem, audio : ^Audio) {
+    instances := projectiles.instances
+    for proj_idx := 0; proj_idx < projectiles.count; proj_idx += 1 {
+        proj := projectiles.instances[proj_idx]
 
         enemy_cell_check_origin := get_cell_coord(enemies.grid, proj.pos)
         enemy_cell_check_radius := int(math.ceil(proj.len / enemies.grid.cell_size))
