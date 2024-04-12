@@ -10,6 +10,7 @@ import rl       "vendor:raylib"
 MAX_ENEMIES             :: 4096
 ENEMY_SIZE              :: 5
 ENEMY_SPEED             :: 1400
+ENEMY_TURN_SPEED        :: 10
 ENEMY_FORCE             :: .2
 ENEMY_ALIGNMENT_RADIUS  :: 50
 ENEMY_COHESION_RADIUS   :: 50
@@ -17,11 +18,12 @@ ENEMY_SEPARATION_RADIUS :: 20
 ENEMY_FOLLOW_FACTOR     :: 2.0
 ENEMY_ALIGNMENT_FACTOR  :: 1.0
 ENEMY_COHESION_FACTOR   :: 1.25
-ENEMY_SEPARATION_FACTOR :: 6.0
+ENEMY_SEPARATION_FACTOR :: 3.0
 
 Enemy :: struct {
     pos     : rl.Vector2,
     vel     : rl.Vector2,
+    rot     : f32,
     siz     : f32,
     col     : rl.Color,
     hp      : int,
@@ -48,7 +50,6 @@ unload_enemies :: proc(using enemies : ^Enemies) {
 
 @(optimization_mode="speed")
 tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
-
     clear_cell_data(grid)
 
     for i in 0..<count {
@@ -72,17 +73,11 @@ tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
 
         pos += vel * dt
 
-        instances[i] = enemy
-    }
-}
-
-release_killed_enemies :: proc(using enemies : ^Enemies, ps : ^ParticleSystem) {
-    for i in 0..<count {
-        using enemy := instances[i]
-        if kill {
-            release_enemy(i, enemies)
-            spawn_particles_triangle_segments(ps, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
+        if dir, ok := safe_normalize(vel); ok {
+            rot = math.angle_lerp(rot, math.atan2(dir.y, dir.x) - math.PI / 2, 1 - math.exp(-dt * ENEMY_TURN_SPEED))
         }
+
+        instances[i] = enemy
     }
 }
 
@@ -95,13 +90,65 @@ draw_enemies :: proc(using enemies : ^Enemies) {
     }
 }
 
+add_enemy :: proc(new_enemy : Enemy, using enemies : ^Enemies) {
+    if count == MAX_ENEMIES {
+        return
+    }
+    instances[count] = new_enemy
+    count += 1
+}
+
+release_enemy :: proc(index : int, using enemies : ^Enemies) {
+    instances[index] = instances[count - 1]
+    count -= 1
+}
+
+release_killed_enemies :: proc(using enemies : ^Enemies, ps : ^ParticleSystem) {
+    for i in 0..<count {
+        using enemy := instances[i]
+        if kill {
+            release_enemy(i, enemies)
+            spawn_particles_triangle_segments(ps, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
+        }
+    }
+}
+
 draw_enemies_grid :: proc(using enemies : ^Enemies) {
     for cell in grid.cells {
         rl.DrawRectangleLinesEx({f32(cell.x) * grid.cell_size, f32(cell.y) * grid.cell_size, grid.cell_size, grid.cell_size}, 1, {255, 255, 255, 20})
     }
 }
 
-@(private)
+get_enemy_corners :: proc(using enemy : Enemy) -> [3]rl.Vector2 {
+    corners := [3]rl.Vector2 { {-1, -1}, {+1, -1}, {0, +1.5} }
+    for i in 0..<3 {
+        corners[i] = rl.Vector2Rotate(corners[i], rot)
+        corners[i] *= siz
+        corners[i] += pos
+    }
+    return corners
+}
+
+check_enemy_line_collision :: proc(line_start, line_end : rl.Vector2, enemy : Enemy) -> (hit : bool, point, normal : rl.Vector2) {
+    corners := get_enemy_corners(enemy)
+
+    for i := 0; i < len(corners); i += 1 {
+        enemy_corner_start  := corners[i]
+        enemy_corner_end    := corners[(i + 1) % len(corners)]
+
+        point : rl.Vector2 = {}
+
+        if rl.CheckCollisionLines(line_start, line_end, enemy_corner_start, enemy_corner_end, &point) {
+            tangent := linalg.normalize(enemy_corner_start - enemy_corner_end)
+            normal  := rl.Vector2Rotate(tangent, -math.TAU)
+            return true, point, normal
+        }
+    }
+
+    return false, {}, {}
+}
+
+@(private="file")
 follow :: proc(index : int, using enemies : ^Enemies, target : rl.Vector2) -> rl.Vector2 {
     current  := instances[index]
     steering := linalg.normalize(target - current.pos) * ENEMY_SPEED
@@ -110,6 +157,7 @@ follow :: proc(index : int, using enemies : ^Enemies, target : rl.Vector2) -> rl
     return steering
 }
 
+@(private="file")
 alignment :: proc(index : int, using enemies : ^Enemies) -> rl.Vector2 {
     enemy           := instances[index]
     steering        := rl.Vector2{}
@@ -143,7 +191,7 @@ alignment :: proc(index : int, using enemies : ^Enemies) -> rl.Vector2 {
     return steering
 }
 
-@(private)
+@(private="file")
 cohesion :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
     enemy           := instances[index]
     steering        := rl.Vector2{}
@@ -178,7 +226,7 @@ cohesion :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
     return steering
 }
 
-@(private)
+@(private="file")
 separation :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
     enemy         := instances[index]
     steering        := rl.Vector2{}
@@ -216,12 +264,12 @@ separation :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
     return steering
 }
 
-@(private)
+@(private="file")
 set_length :: proc(v : rl.Vector2, length : f32) -> rl.Vector2 {
     return linalg.normalize(v) * length
 }
 
-@(private)
+@(private="file")
 limit_length :: proc(v : rl.Vector2, limit : f32) -> rl.Vector2 {
     len := linalg.length(v)
     if len == 0 || len <= limit {
@@ -232,46 +280,9 @@ limit_length :: proc(v : rl.Vector2, limit : f32) -> rl.Vector2 {
     return dir * limit
 }
 
-add_enemy :: proc(new_enemy : Enemy, using enemies : ^Enemies) {
-    if count == MAX_ENEMIES {
-        return
-    }
-    instances[count] = new_enemy
-    count += 1
-}
-
-release_enemy :: proc(index : int, using enemies : ^Enemies) {
-    instances[index] = instances[count - 1]
-    count -= 1
-}
-
-get_enemy_corners :: proc(using enemy : Enemy) -> [3]rl.Vector2 {
-    dir     := linalg.normalize(vel)
-    radians := linalg.atan2(dir.y, dir.x) - linalg.PI * 0.5
-    corners := [3]rl.Vector2 { {-1, -1}, {+1, -1}, {0, +1.5} }
-    for i in 0..<3 {
-        corners[i] = rl.Vector2Rotate(corners[i], radians)
-        corners[i] *= siz
-        corners[i] += pos
-    }
-    return corners
-}
-
-check_enemy_line_collision :: proc(line_start, line_end : rl.Vector2, enemy : Enemy) -> (hit : bool, point, normal : rl.Vector2) {
-    corners := get_enemy_corners(enemy)
-
-    for i := 0; i < len(corners); i += 1 {
-        enemy_corner_start  := corners[i]
-        enemy_corner_end    := corners[(i + 1) % len(corners)]
-
-        point : rl.Vector2 = {}
-
-        if rl.CheckCollisionLines(line_start, line_end, enemy_corner_start, enemy_corner_end, &point) {
-            tangent := linalg.normalize(enemy_corner_start - enemy_corner_end)
-            normal  := rl.Vector2Rotate(tangent, -math.TAU)
-            return true, point, normal
-        }
-    }
-
-    return false, {}, {}
+@(private="file")
+safe_normalize :: proc(v : rl.Vector2) -> (rl.Vector2, bool) {
+    length := linalg.length(v)
+    if length > 0 do return v / length, true
+    else do return 0, false
 }

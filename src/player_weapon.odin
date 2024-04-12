@@ -7,7 +7,7 @@ import linalg "core:math/linalg"
 import rl "vendor:raylib"
 
 SHOOT_DELAY     :: 0.5
-WEAPON_WIDTH    :: 3sas
+WEAPON_WIDTH    :: 3
 WEAPON_LENGTH   :: 30
 WEAPON_KICK     :: 50
 
