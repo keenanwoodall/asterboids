@@ -1,5 +1,6 @@
 package game
 
+import fmt      "core:fmt"
 import time     "core:time"
 import rand     "core:math/rand"
 import linalg   "core:math/linalg"
@@ -41,8 +42,8 @@ spawn_new_wave :: proc(enemy_count : int, waves : ^Waves, enemies : ^Enemies, sp
     Archetype :: struct { size : f32, hp : int, color : rl.Color}
     archetypes := [?]Archetype {
         {ENEMY_SIZE * 1.0, 1, rl.RED},
-        {ENEMY_SIZE * 1.5, 2, rl.ORANGE},
-        {ENEMY_SIZE * 2.0, 3, rl.SKYBLUE} 
+        {ENEMY_SIZE * 1.5, 3, rl.ORANGE},
+        {ENEMY_SIZE * 2.0, 5, rl.SKYBLUE} 
     }
 
     waves.spawn_event_idx += 1

@@ -17,6 +17,7 @@ main :: proc() {
     }
 
     game := new(Game)
+    defer free(game)
 
     load_game(game)
     defer unload_game(game)
@@ -24,9 +25,8 @@ main :: proc() {
     for !rl.WindowShouldClose() {
         tick_game(game)
         draw_game(game)
-        rl.DrawFPS(10, 10)
 
-        if game.request_restart || rl.IsKeyPressed(.R) {
+        if game.request_restart {
             unload_game(game)
             load_game(game)
         }

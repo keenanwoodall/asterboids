@@ -59,7 +59,10 @@ tick_game :: proc(using game : ^Game) {
     tick_projectiles_collision(projectiles, enemies, pixel_particles, audio)
     release_killed_enemies(enemies, line_particles)
     tick_particles(pixel_particles, dt)
+    tick_particles(line_particles, dt)
     tick_audio(audio)
+
+    request_restart = rl.IsKeyPressed(.R)
 }
 
 draw_game :: proc(using game : ^Game) {
@@ -72,4 +75,7 @@ draw_game :: proc(using game : ^Game) {
     draw_projectiles(projectiles)
     draw_player_weapon(player)
     draw_particles_as_pixels(pixel_particles)
+    draw_particles_as_lines(line_particles)
+
+    rl.DrawFPS(10, 10)
 }

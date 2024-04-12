@@ -76,11 +76,13 @@ tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
     }
 }
 
-@(optimization_mode="speed")
 release_killed_enemies :: proc(using enemies : ^Enemies, ps : ^ParticleSystem) {
     for i in 0..<count {
         using enemy := instances[i]
-        if kill do release_enemy(i, enemies)
+        if kill {
+            release_enemy(i, enemies)
+            spawn_particles_triangle_segments(ps, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
+        }
     }
 }
 
@@ -91,8 +93,9 @@ draw_enemies :: proc(using enemies : ^Enemies) {
         corners     := get_enemy_corners(enemy)
         rl.DrawTriangle(corners[0], corners[2], corners[1], col)
     }
+}
 
-    // Draw Grid
+draw_enemies_grid :: proc(using enemies : ^Enemies) {
     for cell in grid.cells {
         rl.DrawRectangleLinesEx({f32(cell.x) * grid.cell_size, f32(cell.y) * grid.cell_size, grid.cell_size, grid.cell_size}, 1, {255, 255, 255, 20})
     }
@@ -229,11 +232,11 @@ limit_length :: proc(v : rl.Vector2, limit : f32) -> rl.Vector2 {
     return dir * limit
 }
 
-add_enemy :: proc(newEnemy : Enemy, using enemies : ^Enemies) {
+add_enemy :: proc(new_enemy : Enemy, using enemies : ^Enemies) {
     if count == MAX_ENEMIES {
         return
     }
-    instances[count] = newEnemy
+    instances[count] = new_enemy
     count += 1
 }
 

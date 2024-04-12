@@ -6,9 +6,10 @@ import rand "core:math/rand"
 import linalg "core:math/linalg"
 import rl "vendor:raylib"
 
-SHOOT_DELAY     :: 0.2
-WEAPON_WIDTH    :: 3
+SHOOT_DELAY     :: 0.5
+WEAPON_WIDTH    :: 3sas
 WEAPON_LENGTH   :: 30
+WEAPON_KICK     :: 50
 
 @(private) last_shoot_tick : time.Tick
 
@@ -23,7 +24,7 @@ tick_player_weapon :: proc(using player : ^Player, audio : ^Audio, projectiles :
         last_shoot_tick = time.tick_now()
 
         // kick
-        vel -= get_weapon_dir(player) * 100
+        vel -= get_weapon_dir(player) * WEAPON_KICK
 
         // sfx
         try_play_sound(audio, audio.laser, debounce = 0.05)
