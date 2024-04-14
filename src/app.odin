@@ -1,14 +1,14 @@
 package game
 
-import math "core:math"
-import mem  "core:mem"
-import fmt  "core:fmt"
-import rl   "vendor:raylib"
+import "core:math"
+import "core:mem"
+import "core:fmt"
+import rl "vendor:raylib"
 
 main :: proc() {
     rl.SetTraceLogLevel(.ERROR)
     rl.SetConfigFlags(rl.ConfigFlags { rl.ConfigFlag.MSAA_4X_HINT })
-    rl.InitWindow(width = 1920, height = 1080, title = "Shooter")
+    rl.InitWindow(width = 1920, height = 1080, title = "Asterboids")
     rl.InitAudioDevice()
 
     defer {

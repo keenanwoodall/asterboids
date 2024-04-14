@@ -1,7 +1,7 @@
 package game
 
-import math "core:math"
-import rl   "vendor:raylib"
+import "core:math"
+import rl "vendor:raylib"
 
 MAX_PROJECTILES :: 8192
 
@@ -9,7 +9,8 @@ Projectile :: struct {
     pos : rl.Vector2,
     dir : rl.Vector2,
     spd : f32,
-    len : f32
+    len : f32,
+    bounces : int
 }
 
 Projectiles :: struct {
@@ -22,7 +23,6 @@ init_projectiles :: proc(using projectiles : ^Projectiles) {
 }
 
 tick_projectiles :: proc(using projectiles : ^Projectiles, dt : f32) {
-
     for i := 0; i < count; i += 1 {
         instances[i].pos += instances[i].dir * instances[i].spd * dt
     }

@@ -1,10 +1,10 @@
 package game
 
-import fmt      "core:fmt"
-import time     "core:time"
-import math     "core:math"
-import rand     "core:math/rand"
-import linalg   "core:math/linalg"
+import "core:fmt"
+import "core:time"
+import "core:math"
+import "core:math/rand"
+import "core:math/linalg"
 import rl       "vendor:raylib"
 
 @(optimization_mode="speed")
@@ -23,7 +23,7 @@ tick_projectiles_screen_collision :: proc(projectiles : ^Projectiles) {
 @(optimization_mode="speed")
 tick_projectiles_enemy_collision :: proc(projectiles : ^Projectiles, enemies : ^Enemies, ps : ^ParticleSystem, audio : ^Audio) {
     instances := projectiles.instances
-    for proj_idx := 0; proj_idx < projectiles.count; proj_idx += 1 {
+    projectile_loop : for proj_idx := 0; proj_idx < projectiles.count; proj_idx += 1 {
         proj := projectiles.instances[proj_idx]
 
         enemy_cell_check_origin := get_cell_coord(enemies.grid, proj.pos)
@@ -39,7 +39,8 @@ tick_projectiles_enemy_collision :: proc(projectiles : ^Projectiles, enemies : ^
                             hit_normal := linalg.normalize(hit_point - enemy.pos)
                             enemy.vel += proj.dir * 1000 / enemy.siz
                             enemy.hp -= 1
-
+                            proj.bounces -= 1
+                            
                             proj.dir = linalg.normalize(linalg.reflect(proj.dir, hit_normal))
                             projectiles.instances[proj_idx] = proj
                             spawn_particles_direction(
@@ -48,21 +49,26 @@ tick_projectiles_enemy_collision :: proc(projectiles : ^Projectiles, enemies : ^
                                 direction       = proj.dir,
                                 count           = 32,
                                 min_speed       = 50, 
-                                max_speed       = 250, 
-                                min_lifetime    = 0.05, 
+                                max_speed       = 250,
+                                min_lifetime    = 0.05,
                                 max_lifetime    = 0.5,
                                 color           = enemy.col,
-                                angle           = .5,
+                                angle           = .4,
                                 drag            = 1,
                             )
 
                             if enemy.hp <= 0 {
                                 try_play_sound(audio, audio.explosion, debounce = 0.1)
                                 enemy.kill = true
-                                continue
                             }
                             else {
                                 try_play_sound(audio, audio.impact, debounce = 0.1)
+                            }
+
+                            if proj.bounces < 0 {
+                                release_projectile(proj_idx, projectiles)
+                                proj_idx -= 1
+                                continue projectile_loop
                             }
                         }
                     }

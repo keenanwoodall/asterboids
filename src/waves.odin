@@ -1,16 +1,16 @@
 package game
 
-import fmt      "core:fmt"
-import time     "core:time"
-import rand     "core:math/rand"
-import linalg   "core:math/linalg"
-import rl       "vendor:raylib"
+import "core:fmt"
+import "core:time"
+import "core:math/rand"
+import "core:math/linalg"
+import rl "vendor:raylib"
 
 ENEMY_SPAWN_PADDING :: 100
-ENEMY_WAVE_DURATION :: 7
+ENEMY_WAVE_DURATION :: 10
 
 Waves :: struct {
-    last_wave_tick   : time.Tick,
+    last_wave_time   : time.Time,
     wave_idx         : int,
     spawn_event_idx  : int,
     group_rand       : rand.Rand,
@@ -19,37 +19,42 @@ Waves :: struct {
 init_waves :: proc(using waves : ^Waves) {
     spawn_event_idx = 0
     wave_idx        = 0
-    last_wave_tick  = {}
+    last_wave_time  = {}
     group_rand      = rand.create(12345)
 }
 
 tick_waves :: proc(waves : ^Waves, enemies : ^Enemies) {
-    elapsed := time.duration_seconds(time.tick_since(waves.last_wave_tick))
+    elapsed := time.duration_seconds(time.since(waves.last_wave_time))
 
     if elapsed > ENEMY_WAVE_DURATION {
         waves.wave_idx += 1
-        waves.last_wave_tick = time.tick_now()
-        spawn_new_wave(waves.wave_idx, waves, enemies, OffscreenClusterSpawner)
-    }
-
-    if rl.IsKeyPressed(.SPACE) {
-        spawn_new_wave(100, waves, enemies, OffscreenClusterSpawner)
+        waves.last_wave_time = time.now()
+        spawn_new_wave(waves.wave_idx * 2, waves, enemies, OffscreenClusterSpawner)
     }
 }
 
-@(private)
 spawn_new_wave :: proc(enemy_count : int, waves : ^Waves, enemies : ^Enemies, spawner_proc : proc(i, count:int, waves: ^Waves)->rl.Vector2) {
     Archetype :: struct { size : f32, hp : int, color : rl.Color}
     archetypes := [?]Archetype {
         {ENEMY_SIZE * 1.0, 1, rl.RED},
-        {ENEMY_SIZE * 1.5, 3, rl.ORANGE},
-        {ENEMY_SIZE * 2.0, 5, rl.SKYBLUE} 
+        {ENEMY_SIZE * 1.5, 2, rl.ORANGE},
+        {ENEMY_SIZE * 2.0, 3, rl.SKYBLUE} 
     }
 
     waves.spawn_event_idx += 1
 
     for i in 0..<enemy_count * 2 {
-        archetype := rand.choice(archetypes[:])
+        archetype : Archetype
+        if x := rand.float32_range(0, 10); x < 7 {
+            archetype = archetypes[0]
+        }
+        else if x < 9 {
+            archetype = archetypes[1]
+        }
+        else {
+            archetype = archetypes[2]
+        }
+
         new_enemy : Enemy = {
             pos = spawner_proc(i, enemy_count, waves),
             vel = rl.Vector2Rotate({0, 1}, rand.float32_range(0, linalg.TAU)) * ENEMY_SPEED,
@@ -62,15 +67,12 @@ spawn_new_wave :: proc(enemy_count : int, waves : ^Waves, enemies : ^Enemies, sp
     }
 }
 
-@(private)
 random_screen_position :: proc(padding : f32 = 0, r : ^rand.Rand = nil) -> rl.Vector2 {
     w := f32(rl.GetScreenWidth())
     h := f32(rl.GetScreenHeight())
     return {rand.float32_range(padding, w - padding, r), rand.float32_range(padding, h - padding, r)}
 }
 
-
-@(private)
 random_screen_border_position :: proc(padding : f32 = 0, r : ^rand.Rand = nil) -> rl.Vector2 {
     w := f32(rl.GetScreenWidth())
     h := f32(rl.GetScreenHeight())

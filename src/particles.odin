@@ -1,10 +1,10 @@
 package game
 
-import fmt      "core:fmt"
-import math     "core:math"
-import linalg   "core:math/linalg"
-import rand     "core:math/rand"
-import rl       "vendor:raylib"
+import "core:fmt"
+import "core:math"
+import "core:math/linalg"
+import "core:math/rand"
+import rl "vendor:raylib"
 
 MAX_PARTICLES :: 1024
 

@@ -1,9 +1,9 @@
 package game
 
-import fmt  "core:fmt"
-import time "core:time"
-import rand "core:math/rand"
-import rl   "vendor:raylib"
+import "core:fmt"
+import "core:time"
+import "core:math/rand"
+import rl "vendor:raylib"
 
 SoundHistory :: struct {
     last_play_time : time.Time

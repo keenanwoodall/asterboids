@@ -1,9 +1,9 @@
 package game
 
-import rl       "vendor:raylib"
-import math     "core:math"
-import time     "core:time"
-import linalg   "core:math/linalg"
+import "core:math"
+import "core:time"
+import "core:math/linalg"
+import rl "vendor:raylib"
 
 PLAYER_SIZE                 :: 20
 PLAYER_SPEED                :: 1000
@@ -12,14 +12,15 @@ PLAYER_THRUST_EMIT_DELAY    :: 0.01
 PLAYER_THRUST_VOLUME_ATTACK :: 10
 
 Player :: struct {
-    hth : f32,
-    pos : rl.Vector2,
-    vel : rl.Vector2,
-    spd : f32,
-    acc : f32,
-    siz : f32,
-    alive : bool,
-    thruster_volume         : f32,
+    max_hth : f32,
+    hth     : f32,
+    pos     : rl.Vector2,
+    vel     : rl.Vector2,
+    spd     : f32,
+    acc     : f32,
+    siz     : f32,
+    alive   : bool,
+    thruster_volume : f32,
     last_thruster_emit_tick : time.Tick,
 }
 
@@ -28,6 +29,7 @@ init_player :: proc(using player : ^Player) {
     half_width   := f32(rl.rlGetFramebufferWidth()) / 2
     half_height  := f32(rl.rlGetFramebufferHeight()) / 2
 
+    max_hth = 100
     hth = 100
     alive = true
     pos = { half_width, half_height }

@@ -1,11 +1,11 @@
 package game
 
-import fmt      "core:fmt"
-import math     "core:math"
-import time     "core:time"
-import rand     "core:math/rand"
-import linalg   "core:math/linalg"
-import rl       "vendor:raylib"
+import "core:fmt"
+import "core:math"
+import "core:time"
+import "core:math/rand"
+import "core:math/linalg"
+import rl "vendor:raylib"
 
 MAX_ENEMIES             :: 4096
 ENEMY_SIZE              :: 5
@@ -105,7 +105,7 @@ release_enemy :: proc(index : int, using enemies : ^Enemies) {
     count -= 1
 }
 
-release_killed_enemies :: proc(using enemies : ^Enemies, ps : ^ParticleSystem) {
+tick_killed_enemies :: proc(using enemies : ^Enemies, ps : ^ParticleSystem) {
     for i in 0..<count {
         using enemy := instances[i]
         if kill {

@@ -1,24 +1,27 @@
 package game
-import fmt "core:fmt"
-import time "core:time"
-import math "core:math"
-import rand "core:math/rand"
-import linalg "core:math/linalg"
+
+import "core:fmt"
+import "core:time"
+import "core:math"
+import "core:math/rand"
+import "core:math/linalg"
 import rl "vendor:raylib"
 
 SHOOT_DELAY     :: 0.5
-SHOOT_SPEED     :: 2000
-SHOOT_SPREAD    :: math.RAD_PER_DEG * 5
+SHOOT_SPEED     :: 1000
+SHOOT_SPREAD    :: math.RAD_PER_DEG * 2
 WEAPON_WIDTH    :: 3
 WEAPON_LENGTH   :: 30
-WEAPON_KICK     :: 50
+WEAPON_KICK     :: 200
 
 Weapon :: struct {
-    delay   : f64,
-    speed   : f32,
-    kick    : f32,
-    spread  : f32,
-    count   : int,
+    delay       : f64,
+    speed       : f32,
+    kick        : f32,
+    spread      : f32,
+    count       : int,
+    penetration : int,
+    bounces     : int,
     last_shoot_time : time.Time
 }
 
@@ -55,12 +58,14 @@ tick_player_weapon :: proc(using weapon : ^Weapon, using player : ^Player, audio
 
         for i in 0..<count {
             direction := rl.Vector2Rotate(linalg.normalize(rl.GetMousePosition() - pos), rand.float32_range(-spread, spread))
+            actual_speed := speed * rand.float32_range(0.95, 1)
             add_projectile(
                 newProjectile = Projectile {
                     pos = get_weapon_tip(player),
                     dir = direction,
-                    spd = 1500,
-                    len = 10
+                    spd = actual_speed,
+                    len = math.max(actual_speed * 0.01, 5),
+                    bounces = bounces
                 },
                 projectiles = projectiles,
             )
@@ -78,23 +83,19 @@ draw_player_weapon :: proc(using player : ^Player) {
     rl.DrawRectanglePro(weapon_rect, weapon_pivot, weapon_angle, rl.GRAY)
 }
 
-@private
 get_weapon_dir :: #force_inline proc(using player : ^Player) -> rl.Vector2 {
     return linalg.normalize(rl.GetMousePosition() - pos)
 }
 
-@private
 get_weapon_rad :: #force_inline proc(using player : ^Player) -> f32 {
     dir := get_weapon_dir(player)
     return linalg.atan2(dir.y, dir.x) - math.PI / 2
 }
 
-@private
 get_weapon_deg :: #force_inline proc(using player : ^Player) -> f32 {
     return linalg.to_degrees(get_weapon_rad(player))
 }
 
-@private
 get_weapon_tip :: #force_inline proc(using player : ^Player) -> rl.Vector2 {
     local_tip := rl.Vector2{0, WEAPON_LENGTH}
     local_tip  = rl.Vector2Rotate(local_tip, get_weapon_rad(player))
