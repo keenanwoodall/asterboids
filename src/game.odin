@@ -100,7 +100,7 @@ draw_game :: proc(using game : ^Game) {
     draw_enemies(enemies)
     draw_projectiles(projectiles)
     draw_pickups(pickups)
-    draw_player_weapon(player)
+    draw_player_weapon(player, weapon)
     draw_particles_as_pixels(pixel_particles)
     draw_particles_as_lines(line_particles)
 
@@ -109,4 +109,7 @@ draw_game :: proc(using game : ^Game) {
     if leveling.leveling_up {
         draw_level_up_gui(game)
     }
+
+    rl.DrawFPS(10, 10)
+    rl.DrawText(rl.TextFormat("Enemies: %i", enemies.count), 10, 40, 20, rl.WHITE)
 }

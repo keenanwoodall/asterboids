@@ -7,11 +7,11 @@ import "core:math/rand"
 import "core:math/linalg"
 import rl "vendor:raylib"
 
-MAX_ENEMIES             :: 4096
-ENEMY_SIZE              :: 5
-ENEMY_SPEED             :: 1400
+MAX_ENEMIES             :: 1080
+ENEMY_SIZE              :: 6
+ENEMY_SPEED             :: 2500
 ENEMY_TURN_SPEED        :: 10
-ENEMY_FORCE             :: .2
+ENEMY_FORCE             :: 500
 ENEMY_ALIGNMENT_RADIUS  :: 50
 ENEMY_COHESION_RADIUS   :: 50
 ENEMY_SEPARATION_RADIUS :: 20
@@ -67,11 +67,11 @@ tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
         if player.alive {
             steer_force += follow(i, enemies, player.pos) * ENEMY_FOLLOW_FACTOR
         }
-        steer_force += alignment(i, enemies) * ENEMY_ALIGNMENT_FACTOR
-        steer_force += cohesion(i, enemies) * ENEMY_COHESION_FACTOR
-        steer_force += separation(i, enemies) * ENEMY_SEPARATION_FACTOR
+        steer_force += #force_inline alignment(i, enemies) * ENEMY_ALIGNMENT_FACTOR
+        steer_force += #force_inline cohesion(i, enemies) * ENEMY_COHESION_FACTOR
+        steer_force += #force_inline separation(i, enemies) * ENEMY_SEPARATION_FACTOR
         
-        vel += steer_force
+        vel += steer_force * dt
         vel = limit_length(vel, ENEMY_SPEED / siz)
 
         pos += vel * dt
@@ -85,11 +85,10 @@ tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
 }
 
 draw_enemies :: proc(using enemies : ^Enemies) {
-    rl.rlSetLineWidth(3)
     for i in 0..<count {
         using enemy := instances[i]
         corners     := get_enemy_corners(enemy)
-        rl.DrawTriangle(corners[0], corners[2], corners[1], col)
+        rl.DrawTriangleLines(corners[0], corners[2], corners[1], col)
     }
 }
 
@@ -113,8 +112,7 @@ tick_killed_enemies :: proc(using enemies : ^Enemies, pickups : ^Pickups, ps : ^
             release_enemy(i, enemies)
             spawn_particles_triangle_segments(ps, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
 
-            pickup_spawn_count := rand.int_max(enemy.loot + 1)
-            for i in 0..<pickup_spawn_count {
+            for i in 0..<enemy.loot {
                 spawn_pickup(pickups, pos, rand.choice_enum(PickupType))
             }
         }
@@ -250,7 +248,9 @@ separation :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
                 if &instances[index] == other_enemies[other_idx] do continue
                 
                 sqr_dist := linalg.length2(enemy.pos - other_enemy.pos)
-                if sqr_dist > ENEMY_SEPARATION_RADIUS * ENEMY_SEPARATION_RADIUS do continue
+                if sqr_dist > enemy.siz * enemy.siz + other_enemy.siz * other_enemy.siz + ENEMY_SEPARATION_RADIUS * ENEMY_SEPARATION_RADIUS {
+                    continue
+                }
 
                 dist := math.sqrt(sqr_dist)
 

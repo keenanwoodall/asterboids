@@ -6,7 +6,7 @@ import "core:math/linalg"
 import rl "vendor:raylib"
 
 PLAYER_SIZE                 :: 20
-PLAYER_SPEED                :: 1000
+PLAYER_SPEED                :: 750
 PLAYER_ACCELERATION         :: 1.0
 PLAYER_THRUST_EMIT_DELAY    :: 0.01
 PLAYER_THRUST_VOLUME_ATTACK :: 10
@@ -113,8 +113,7 @@ tick_player :: proc(using player : ^Player, audio : ^Audio, ps : ^ParticleSystem
 
 draw_player :: proc(using player : ^Player) {
     if !alive do return
-    size := rl.Vector2{siz, siz}
-    rl.DrawRectangleV(position = pos - size/2, size = size, color = rl.WHITE)
+    rl.DrawCircleV(center = pos, radius = siz / 2, color = rl.WHITE)
 }
 
 get_player_rect :: proc(using player : ^Player) -> rl.Rectangle {
@@ -132,7 +131,8 @@ get_player_corners :: proc(using player : ^Player) -> [4]rl.Vector2 {
     }
 }
 
-@(private) emit_thruster_particles :: proc(using player : ^Player, ps : ^ParticleSystem, dir : rl.Vector2) {
+@(private) 
+emit_thruster_particles :: proc(using player : ^Player, ps : ^ParticleSystem, dir : rl.Vector2) {
     player.last_thruster_emit_tick = time.tick_now()
     norm_dir := linalg.normalize(dir)
     spawn_particles_direction(

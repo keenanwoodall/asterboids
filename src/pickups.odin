@@ -11,9 +11,9 @@ SPAWN_DELAY                 :: 20
 PICKUP_RADIUS               :: 10
 PICKUP_COLOR                :: rl.YELLOW
 PICKUP_DRAG                 :: 2
-PICKUP_ATTRACTION_RADIUS    :: 100
-PICKUP_ATTRACTION_FORCE     :: 1
-PICKUP_LIFETIME             :: 20
+PICKUP_ATTRACTION_RADIUS    :: 200
+PICKUP_ATTRACTION_FORCE     :: 5000
+PICKUP_LIFETIME             :: 30
 
 PickupType :: enum {
     Health, XP
@@ -30,7 +30,7 @@ Pickup :: struct {
 }
 
 Pickups :: struct {
-    pool : Pool(1024, Pickup)
+    pool : Pool(512, Pickup)
 }
 
 init_pickups :: proc(using pickups : ^Pickups) {
@@ -42,20 +42,30 @@ unload_pickups :: proc(using pickups : ^Pickups) {
 }
 
 tick_pickups :: proc(using game : ^Game, dt : f32) {
+    if !game.player.alive do return
+    
     for i := 0; i < pickups.pool.count; i += 1 {
         pickup  := &pickups.pool.instances[i]
         diff    := player.pos - pickup.pos
         dist    := linalg.length(diff)
         if dist < PICKUP_RADIUS + player.siz / 2 {
-            game.leveling.xp += pickup.xp
-            game.player.hth = min(game.player.hth + f32(pickup.hp), game.player.max_hth)
+            if pickup.xp > 0 {
+                game.leveling.xp += pickup.xp
+                try_play_sound(audio, audio.collect_xp)
+            }
+            if pickup.hp > 0 {
+                game.player.hth = min(game.player.hth + f32(pickup.hp), game.player.max_hth)
+                try_play_sound(audio, audio.collect_hp)
+            }
+            spawn_particles_burst(line_particles, player.pos, pickup.vel * 0.5, 32, 50, 200, 0.2, 0.5, pickup.col, drag = 3)
             pool_release(&pickups.pool, i)
             i -= 1
             continue
         }
         else if dist < PICKUP_ATTRACTION_RADIUS || pickup.following {
             dir         := diff / dist
-            pickup.vel  += dir * PICKUP_ATTRACTION_FORCE * 1 - (dist / PICKUP_ATTRACTION_RADIUS) * dt
+            pickup.vel  += dir * PICKUP_ATTRACTION_FORCE * dt;
+
             pickup.following   = true
         }
 
@@ -72,7 +82,7 @@ tick_pickups :: proc(using game : ^Game, dt : f32) {
 
 draw_pickups :: proc(using pickups : ^Pickups) {
     for pickup in pool.instances[0:pool.count] {
-        rl.DrawCircleV(pickup.pos, 3, rl.GREEN if pickup.hp > 0 else rl.YELLOW)
+        rl.DrawCircleV(pickup.pos, 4 + f32(math.sin_f32(pickup.time * 5)) * math.smoothstep(f32(PICKUP_LIFETIME), PICKUP_LIFETIME - 2, pickup.time), pickup.col)
     }
 }
 
@@ -82,11 +92,15 @@ spawn_pickup :: proc(using pickups : ^Pickups, pos : rl.Vector2, type : PickupTy
     }
 
     switch type {
-        case .Health: new_pickup.hp = 1
-        case .XP: new_pickup.xp = 1
+        case .Health: 
+            new_pickup.hp = 1
+            new_pickup.col = rl.GREEN
+        case .XP:
+            new_pickup.xp = 1
+            new_pickup.col = rl.YELLOW
     }
 
-    new_pickup.vel = rl.Vector2Rotate({0, rand.float32_range(0, 5)}, math.TAU)
+    new_pickup.vel = rl.Vector2Rotate({0, rand.float32_range(0, 100)}, rand.float32_range(0, math.TAU))
 
     pool_add(&pool, new_pickup)
 }

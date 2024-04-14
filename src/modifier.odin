@@ -16,8 +16,8 @@ ModifierType :: enum {
     WeaponAccuracy,
     WeaponBounce,
     WeaponKick,
-    // PlayerSpeed,
-    // PlayerAcceleration,
+    PlayerSpeed,
+    PlayerAcceleration,
 }
 
 Modifier :: struct {
@@ -140,9 +140,33 @@ ModifierChoices := map[ModifierType]ModifierPair {
             on_choose   = proc(game : ^Game) { game.weapon.kick *= 0.5 }
         },
         negative_mod = {
-            type        = .WeaponBounce,
+            type        = .WeaponKick,
             description = "Kick + 10%",
             on_choose   = proc(game : ^Game) { game.weapon.kick *= 1.1 },
+        },
+    },
+    .PlayerSpeed = {
+        positive_mod = {
+            type        = .PlayerSpeed,
+            description = "Speed + 25%",
+            on_choose   = proc(game : ^Game) { game.player.spd *= 1.25 }
+        },
+        negative_mod = {
+            type        = .PlayerSpeed,
+            description = "Speed - 5%",
+            on_choose   = proc(game : ^Game) { game.player.spd *= 0.95 },
+        },
+    },
+    .PlayerAcceleration = {
+        positive_mod = {
+            type        = .PlayerAcceleration,
+            description = "Acceleration + 30%",
+            on_choose   = proc(game : ^Game) { game.player.acc *= 1.3 }
+        },
+        negative_mod = {
+            type        = .PlayerAcceleration,
+            description = "Acceleration - 10%",
+            on_choose   = proc(game : ^Game) { game.player.acc *= 0.9 },
         },
     }
 }

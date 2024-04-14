@@ -73,13 +73,14 @@ tick_player_weapon :: proc(using weapon : ^Weapon, using player : ^Player, audio
     }
 }
 
-draw_player_weapon :: proc(using player : ^Player) {
+draw_player_weapon :: proc(using player : ^Player, weapon : ^Weapon) {
     if !alive do return
 
     weapon_rect  := rl.Rectangle{pos.x, pos.y, WEAPON_WIDTH, WEAPON_LENGTH}
     weapon_pivot := rl.Vector2{WEAPON_WIDTH / 2, 0}
     weapon_angle := get_weapon_deg(player)
-
+    weapon_spread_deg := math.to_degrees(-weapon.spread / 2)
+    rl.DrawLineV(pos, rl.GetMousePosition(), {255, 0, 0, 20})
     rl.DrawRectanglePro(weapon_rect, weapon_pivot, weapon_angle, rl.GRAY)
 }
 

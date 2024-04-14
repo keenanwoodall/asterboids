@@ -31,6 +31,8 @@ tick_leveling :: proc(using game : ^Game) {
             leveling.leveling_up = true
             leveling.level_up_choice_a = choice_a
             leveling.level_up_choice_b = choice_b     
+
+            try_play_sound(audio, audio.level_up)
         }
         else do fmt.printfln("ERROR. Could not find valid mod choices.")
     }
@@ -63,11 +65,13 @@ draw_level_up_gui :: proc(using game : ^Game) {
         leveling.leveling_up = false
         choice_pair_a.positive_mod.on_choose(game)
         choice_pair_a.negative_mod.on_choose(game)
+        try_play_sound(audio, audio.level_up_conf)
     }
     if rl.GuiButton(choice_rects[1], "") {
         leveling.leveling_up = false
         choice_pair_b.positive_mod.on_choose(game)
         choice_pair_b.negative_mod.on_choose(game)
+        try_play_sound(audio, audio.level_up_conf)
     }
 
     if rl.GuiButton(skip_rect, "Skip") {
@@ -101,5 +105,5 @@ draw_level_up_gui :: proc(using game : ^Game) {
 }
 
 get_target_xp :: proc(level : int) -> int {
-    return int(math.pow(f32(level * 10), 1.1))
+    return int(math.pow(f32(level * 6), 1.1))
 }

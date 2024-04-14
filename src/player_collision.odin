@@ -5,7 +5,7 @@ import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
 
-ENEMY_DPS :: 100
+ENEMY_DPS :: 300
 
 tick_player_enemy_collision_:: proc(using player : ^Player, enemies : ^Enemies, ps : ^ParticleSystem, dt : f32) {
     if !alive do return

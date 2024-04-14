@@ -53,7 +53,7 @@ tick_projectiles_enemy_collision :: proc(projectiles : ^Projectiles, enemies : ^
                                 min_lifetime    = 0.05,
                                 max_lifetime    = 0.5,
                                 color           = enemy.col,
-                                angle           = .4,
+                                angle           = 0.4,
                                 drag            = 1,
                             )
 
@@ -61,15 +61,15 @@ tick_projectiles_enemy_collision :: proc(projectiles : ^Projectiles, enemies : ^
                                 try_play_sound(audio, audio.explosion, debounce = 0.1)
                                 enemy.kill = true
                             }
-                            else {
-                                try_play_sound(audio, audio.impact, debounce = 0.1)
-                            }
+                            
+                            try_play_sound(audio, audio.impact, debounce = 0.1)
 
                             if proj.bounces < 0 {
                                 release_projectile(proj_idx, projectiles)
                                 proj_idx -= 1
                                 continue projectile_loop
                             }
+                            else do try_play_sound(audio, audio.deflect)
                         }
                     }
                 }
