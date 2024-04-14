@@ -8,6 +8,7 @@ import rl "vendor:raylib"
 
 Game :: struct {
     player          : ^Player,
+    leveling        : ^Leveling,
     weapon          : ^Weapon,
     enemies         : ^Enemies,
     waves           : ^Waves,
@@ -17,11 +18,13 @@ Game :: struct {
     pixel_particles : ^ParticleSystem,
     line_particles  : ^ParticleSystem,
 
+    time            : f64,
     request_restart : bool
 }
 
 load_game :: proc(using game : ^Game) {
     player          = new(Player)
+    leveling        = new(Leveling)
     weapon          = new(Weapon)
     enemies         = new(Enemies)
     waves           = new(Waves)
@@ -32,10 +35,13 @@ load_game :: proc(using game : ^Game) {
     line_particles  = new(ParticleSystem)
 
     request_restart = false
+    time = 0
 
     init_player(player)
+    init_leveling(leveling)
     init_weapon(weapon)
     init_enemies(enemies)
+    init_waves(waves)
     init_projectiles(projectiles)
     init_pickups(pickups)
     load_audio(audio)
@@ -46,6 +52,7 @@ unload_game :: proc(using game : ^Game) {
     unload_pickups(pickups)
     unload_audio(audio)
     free(player)
+    free(leveling)
     free(weapon)
     free(enemies)
     free(waves)
@@ -59,20 +66,23 @@ unload_game :: proc(using game : ^Game) {
 tick_game :: proc(using game : ^Game) {
     dt := rl.GetFrameTime();
 
-    if !pickups.selecting_mod {
+    if !leveling.leveling_up {
         // Tick all the things!
         tick_pickups(game, dt)
+        tick_leveling(game)
         tick_player(player, audio, pixel_particles, dt)
-        tick_player_weapon(weapon, player, audio, projectiles, pixel_particles)
-        tick_waves(waves, enemies)
+        tick_player_weapon(weapon, player, audio, projectiles, pixel_particles, time)
+        tick_waves(waves, enemies, time)
         tick_enemies(enemies, player, dt)
         tick_player_enemy_collision_(player, enemies, line_particles, dt)
         tick_projectiles(projectiles, dt)
         tick_projectiles_screen_collision(projectiles)
         tick_projectiles_enemy_collision(projectiles, enemies, pixel_particles, audio)
-        tick_killed_enemies(enemies, line_particles)
+        tick_killed_enemies(enemies, pickups, line_particles)
         tick_particles(pixel_particles, dt)
         tick_particles(line_particles, dt)    
+
+        time += f64(dt)
     }
 
     tick_audio(audio)
@@ -94,9 +104,9 @@ draw_game :: proc(using game : ^Game) {
     draw_particles_as_pixels(pixel_particles)
     draw_particles_as_lines(line_particles)
 
-    draw_player_gui(player)
+    draw_game_gui(game)
 
-    if pickups.selecting_mod {
-        draw_pickup_selection_gui(game)
+    if leveling.leveling_up {
+        draw_level_up_gui(game)
     }
 }

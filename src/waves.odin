@@ -8,9 +8,11 @@ import rl "vendor:raylib"
 
 ENEMY_SPAWN_PADDING :: 100
 ENEMY_WAVE_DURATION :: 10
+MIN_WAVE_DURATION   :: 5
 
 Waves :: struct {
-    last_wave_time   : time.Time,
+    last_wave_time   : f64,
+    wave_duration    : f64,
     wave_idx         : int,
     spawn_event_idx  : int,
     group_rand       : rand.Rand,
@@ -18,27 +20,30 @@ Waves :: struct {
 
 init_waves :: proc(using waves : ^Waves) {
     spawn_event_idx = 0
+    wave_duration   = ENEMY_WAVE_DURATION
     wave_idx        = 0
-    last_wave_time  = {}
+    last_wave_time  = -ENEMY_WAVE_DURATION
     group_rand      = rand.create(12345)
 }
 
-tick_waves :: proc(waves : ^Waves, enemies : ^Enemies) {
-    elapsed := time.duration_seconds(time.since(waves.last_wave_time))
+tick_waves :: proc(waves : ^Waves, enemies : ^Enemies, time : f64) {
+    elapsed := time - waves.last_wave_time
 
-    if elapsed > ENEMY_WAVE_DURATION {
+    if elapsed > waves.wave_duration || enemies.count == 0 {
         waves.wave_idx += 1
-        waves.last_wave_time = time.now()
+        waves.wave_duration *= 0.975
+        waves.wave_duration = max(waves.wave_duration, MIN_WAVE_DURATION)
+        waves.last_wave_time = time
         spawn_new_wave(waves.wave_idx * 2, waves, enemies, OffscreenClusterSpawner)
     }
 }
 
 spawn_new_wave :: proc(enemy_count : int, waves : ^Waves, enemies : ^Enemies, spawner_proc : proc(i, count:int, waves: ^Waves)->rl.Vector2) {
-    Archetype :: struct { size : f32, hp : int, color : rl.Color}
+    Archetype :: struct { size : f32, hp : int, loot : int, color : rl.Color}
     archetypes := [?]Archetype {
-        {ENEMY_SIZE * 1.0, 1, rl.RED},
-        {ENEMY_SIZE * 1.5, 2, rl.ORANGE},
-        {ENEMY_SIZE * 2.0, 3, rl.SKYBLUE} 
+        {ENEMY_SIZE * 1.0, 1, 1, rl.RED},
+        {ENEMY_SIZE * 1.5, 2, 2, rl.ORANGE},
+        {ENEMY_SIZE * 2.0, 3, 5, rl.SKYBLUE} 
     }
 
     waves.spawn_event_idx += 1
@@ -56,11 +61,12 @@ spawn_new_wave :: proc(enemy_count : int, waves : ^Waves, enemies : ^Enemies, sp
         }
 
         new_enemy : Enemy = {
-            pos = spawner_proc(i, enemy_count, waves),
-            vel = rl.Vector2Rotate({0, 1}, rand.float32_range(0, linalg.TAU)) * ENEMY_SPEED,
-            siz = archetype.size,
-            hp  = archetype.hp,
-            col = archetype.color
+            pos         = spawner_proc(i, enemy_count, waves),
+            vel         = rl.Vector2Rotate({0, 1}, rand.float32_range(0, linalg.TAU)) * ENEMY_SPEED,
+            siz         = archetype.size,
+            hp          = archetype.hp,
+            loot        = archetype.loot,
+            col         = archetype.color
         }
 
         add_enemy(new_enemy, enemies)

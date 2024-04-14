@@ -27,7 +27,8 @@ Enemy :: struct {
     siz     : f32,
     col     : rl.Color,
     hp      : int,
-    kill    : bool
+    kill    : bool,
+    loot    : int,
 }
 
 Enemies :: struct {
@@ -105,12 +106,17 @@ release_enemy :: proc(index : int, using enemies : ^Enemies) {
     count -= 1
 }
 
-tick_killed_enemies :: proc(using enemies : ^Enemies, ps : ^ParticleSystem) {
+tick_killed_enemies :: proc(using enemies : ^Enemies, pickups : ^Pickups, ps : ^ParticleSystem) {
     for i in 0..<count {
         using enemy := instances[i]
         if kill {
             release_enemy(i, enemies)
             spawn_particles_triangle_segments(ps, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
+
+            pickup_spawn_count := rand.int_max(enemy.loot + 1)
+            for i in 0..<pickup_spawn_count {
+                spawn_pickup(pickups, pos, rand.choice_enum(PickupType))
+            }
         }
     }
 }

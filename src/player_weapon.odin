@@ -7,12 +7,12 @@ import "core:math/rand"
 import "core:math/linalg"
 import rl "vendor:raylib"
 
-SHOOT_DELAY     :: 0.5
+SHOOT_DELAY     :: 0.25
 SHOOT_SPEED     :: 1000
-SHOOT_SPREAD    :: math.RAD_PER_DEG * 2
+SHOOT_SPREAD    :: math.RAD_PER_DEG * 5
 WEAPON_WIDTH    :: 3
 WEAPON_LENGTH   :: 30
-WEAPON_KICK     :: 200
+WEAPON_KICK     :: 50
 
 Weapon :: struct {
     delay       : f64,
@@ -22,7 +22,7 @@ Weapon :: struct {
     count       : int,
     penetration : int,
     bounces     : int,
-    last_shoot_time : time.Time
+    last_shoot_time : f64
 }
 
 init_weapon :: proc(using weapon : ^Weapon) {
@@ -34,13 +34,13 @@ init_weapon :: proc(using weapon : ^Weapon) {
     last_shoot_time = {}
 }
 
-tick_player_weapon :: proc(using weapon : ^Weapon, using player : ^Player, audio : ^Audio, projectiles : ^Projectiles, ps : ^ParticleSystem) {
+tick_player_weapon :: proc(using weapon : ^Weapon, using player : ^Player, audio : ^Audio, projectiles : ^Projectiles, ps : ^ParticleSystem, game_time : f64) {
     if !alive do return
 
-    time_since_shoot := time.duration_seconds(time.since(last_shoot_time))
+    time_since_shoot := game_time - last_shoot_time
 
     if rl.IsMouseButtonDown(.LEFT) && time_since_shoot > delay {
-        last_shoot_time = time.now()
+        last_shoot_time = game_time
 
         // kick
         vel -= get_weapon_dir(player) * kick
