@@ -2,6 +2,7 @@ package game
 
 import "core:fmt"
 import "core:time"
+import "core:strings"
 import "core:math"
 import "core:math/rand"
 import "core:math/linalg"
@@ -11,36 +12,55 @@ ENEMY_SPAWN_PADDING :: 100
 ENEMY_WAVE_DURATION :: 10
 
 Waves :: struct {
+    no_enemies_timer : f32,
     last_wave_time   : f64,
     wave_duration    : f64,
     wave_idx         : int,
+    group_idx        : int,
     spawn_event_idx  : int,
     group_rand       : rand.Rand,
 }
 
 init_waves :: proc(using waves : ^Waves) {
-    spawn_event_idx = 0
-    wave_duration   = ENEMY_WAVE_DURATION
-    wave_idx        = 0
-    last_wave_time  = -ENEMY_WAVE_DURATION
-    group_rand      = rand.create(12345)
+    no_enemies_timer    = 0
+    spawn_event_idx     = 0
+    wave_duration       = ENEMY_WAVE_DURATION
+    wave_idx            = 0
+    last_wave_time      = -ENEMY_WAVE_DURATION
+    group_rand          = rand.create(12345)
 }
 
-tick_waves :: proc(waves : ^Waves, enemies : ^Enemies, time : f64) {
+tick_waves :: proc(waves : ^Waves, enemies : ^Enemies, dt : f32, time : f64) {
     elapsed := time - waves.last_wave_time
 
-    if elapsed > waves.wave_duration || enemies.count == 0 {
+    if enemies.count == 0 do waves.no_enemies_timer += dt
+
+    if elapsed > waves.wave_duration || waves.no_enemies_timer > 2 {
         waves.wave_idx += 1
 
         waves.last_wave_time = time
+        waves.no_enemies_timer = 0
+
         enemy_count := waves.wave_idx * 2
         cluster_size := 30
-        cluster_count := enemy_count / cluster_size
+        cluster_count := int(math.ceil(f32(enemy_count) / f32(cluster_size)))
+
         for i in 0..<cluster_count {
-            waves.wave_idx += 1
-            spawn_new_wave(enemy_count / cluster_size, waves, enemies, OffscreenClusterSpawner)
+            waves.group_idx += 1
+            spawn_new_wave(enemy_count, waves, enemies, OffscreenClusterSpawner)
         }
     }
+}
+
+draw_waves_gui :: proc(waves : ^Waves, time : f64) {
+    WAVE_TEXT_DURATION :: 2
+    wave_time := time - waves.last_wave_time
+    if wave_time > WAVE_TEXT_DURATION do return
+    
+    label := strings.clone_to_cstring(fmt.tprintf("Wave %i", waves.wave_idx), context.temp_allocator)
+    rect := centered_label_rect(screen_rect(), label, 30)
+    rect.y += f32(rl.GetScreenHeight()) / 2 - 15
+    rl.DrawText(label, i32(rect.x), i32(rect.y), 30, rl.WHITE)
 }
 
 spawn_new_wave :: proc(enemy_count : int, waves : ^Waves, enemies : ^Enemies, spawner_proc : proc(i, count:int, waves: ^Waves)->rl.Vector2) {
@@ -105,7 +125,7 @@ OnScreenSpawner         :: proc(i, ct:int, waves: ^Waves) -> rl.Vector2 { return
 OffscreenClusterSpawner :: proc(i, ct:int, waves: ^Waves) -> rl.Vector2 {
     rand.init(&waves.group_rand, u64(waves.spawn_event_idx))
 
-    padding :f32= ENEMY_SPAWN_PADDING * rand.float32_range(1, 1.25)
+    padding : f32 = ENEMY_SPAWN_PADDING * rand.float32_range(1, 1.25)
     origin  := random_screen_border_position(padding, &waves.group_rand)
     origin  += {
         rand.float32_range(-ENEMY_SPAWN_PADDING, ENEMY_SPAWN_PADDING), 

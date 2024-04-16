@@ -6,8 +6,8 @@ import "core:math/linalg"
 import rl "vendor:raylib"
 
 PLAYER_SIZE                 :: 20
-PLAYER_SPEED                :: 750
-PLAYER_ACCELERATION         :: 1.0
+PLAYER_SPEED                :: 500
+PLAYER_ACCELERATION         :: 1.5
 PLAYER_THRUST_EMIT_DELAY    :: 0.01
 PLAYER_THRUST_VOLUME_ATTACK :: 10
 
@@ -145,7 +145,7 @@ emit_thruster_particles :: proc(using player : ^Player, ps : ^ParticleSystem, di
         particle_system = ps, 
         center          = pos,
         direction       = norm_dir, 
-        count           = 1, 
+        count           = int(1 * acc), 
         min_speed       = 200,
         max_speed       = 1000,
         min_lifetime    = 0.1,

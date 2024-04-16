@@ -80,7 +80,7 @@ draw_player_weapon :: proc(using player : ^Player, weapon : ^Weapon) {
     weapon_pivot := rl.Vector2{WEAPON_WIDTH / 2, 0}
     weapon_angle := get_weapon_deg(player)
     weapon_spread_deg := math.to_degrees(-weapon.spread / 2)
-    rl.DrawLineV(pos, rl.GetMousePosition(), {255, 0, 0, 20})
+    rl.DrawLineV(pos, rl.GetMousePosition(), {255, 0, 0, 80})
     rl.DrawRectanglePro(weapon_rect, weapon_pivot, weapon_angle, rl.GRAY)
 }
 

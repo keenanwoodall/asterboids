@@ -56,7 +56,9 @@ tick_game :: proc(using game : ^Game) {
         tick_leveling(game)
         tick_player(&player, &audio, &pixel_particles, dt)
         tick_player_weapon(&weapon, &player, &audio, &projectiles, &pixel_particles, time)
-        tick_waves(&waves, &enemies, time)
+        if player.alive {
+            tick_waves(&waves, &enemies, dt, time)
+        }
         tick_enemies(&enemies, &player, dt)
         tick_player_enemy_collision_(&player, &enemies, &line_particles, dt)
         tick_projectiles(&projectiles, dt)
@@ -90,6 +92,7 @@ draw_game :: proc(using game : ^Game) {
     draw_particles_as_pixels(&pixel_particles)
     draw_particles_as_lines(&line_particles)
     draw_game_gui(game)
+    draw_waves_gui(&waves, time)
 
     if leveling.leveling_up {
         draw_level_up_gui(game)
@@ -100,7 +103,8 @@ draw_game :: proc(using game : ^Game) {
     if !player.alive {
         label := strings.clone_to_cstring(
             fmt.tprintf(
-                "Game Over\n\nLevel: %i\nEnemies Killed: %i",
+                "GAME OVER\n\nWave: %i\nLevel: %i\nEnemies Killed: %i\n\n",
+                waves.wave_idx,
                 leveling.lvl,
                 enemies.kill_count,
             ), 
