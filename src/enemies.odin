@@ -33,12 +33,14 @@ Enemy :: struct {
 
 Enemies :: struct {
     count       : int,
+    kill_count  : int,
     grid        : ^HGrid(Enemy),
     instances   : [MAX_ENEMIES]Enemy,
 }
 
 init_enemies :: proc(using enemies : ^Enemies) {
     count       = 0
+    kill_count  = 0
     grid        = new(HGrid(Enemy))
     cell_size   : f32 = max(ENEMY_ALIGNMENT_RADIUS, ENEMY_COHESION_RADIUS, ENEMY_SEPARATION_RADIUS)
     init_cell_data(grid, cell_size)
@@ -53,13 +55,13 @@ unload_enemies :: proc(using enemies : ^Enemies) {
 tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
     clear_cell_data(grid)
 
-    for i in 0..<count {
+    #no_bounds_check for i in 0..<count {
         using enemy := instances[i]
         cell_coord := get_cell_coord(grid, pos)
         insert_cell_data(grid, cell_coord, &instances[i])
     }
 
-    for enemy, i in instances[:count] {
+    #no_bounds_check for enemy, i in instances[:count] {
         using enemy := instances[i]
 
         // Sum steering forces
@@ -85,17 +87,14 @@ tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
 }
 
 draw_enemies :: proc(using enemies : ^Enemies) {
-    for i in 0..<count {
-        using enemy := instances[i]
-        corners     := get_enemy_corners(enemy)
-        rl.DrawTriangleLines(corners[0], corners[2], corners[1], col)
+    #no_bounds_check for &enemy in instances[0:count] {
+        corners := get_enemy_corners(enemy)
+        rl.DrawTriangleLines(corners[0], corners[2], corners[1], enemy.col)
     }
 }
 
 add_enemy :: proc(new_enemy : Enemy, using enemies : ^Enemies) {
-    if count == MAX_ENEMIES {
-        return
-    }
+    if count == MAX_ENEMIES do return
     instances[count] = new_enemy
     count += 1
 }
@@ -106,10 +105,13 @@ release_enemy :: proc(index : int, using enemies : ^Enemies) {
 }
 
 tick_killed_enemies :: proc(using enemies : ^Enemies, pickups : ^Pickups, ps : ^ParticleSystem) {
-    for i in 0..<count {
+    for i := 0; i < count; i += 1 {
         using enemy := instances[i]
         if kill {
             release_enemy(i, enemies)
+            i -= 1
+            kill_count += 1
+
             spawn_particles_triangle_segments(ps, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
 
             for i in 0..<enemy.loot {
@@ -117,6 +119,17 @@ tick_killed_enemies :: proc(using enemies : ^Enemies, pickups : ^Pickups, ps : ^
             }
         }
     }
+    // for i in 0..<count {
+    //     using enemy := instances[i]
+    //     if kill {
+    //         release_enemy(i, enemies)
+    //         spawn_particles_triangle_segments(ps, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
+
+    //         for i in 0..<enemy.loot {
+    //             spawn_pickup(pickups, pos, rand.choice_enum(PickupType))
+    //         }
+    //     }
+    // }
 }
 
 draw_enemies_grid :: proc(using enemies : ^Enemies) {

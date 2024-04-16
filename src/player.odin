@@ -24,7 +24,6 @@ Player :: struct {
     last_thruster_emit_tick : time.Tick,
 }
 
-
 init_player :: proc(using player : ^Player) {
     half_width   := f32(rl.rlGetFramebufferWidth()) / 2
     half_height  := f32(rl.rlGetFramebufferHeight()) / 2
@@ -113,7 +112,14 @@ tick_player :: proc(using player : ^Player, audio : ^Audio, ps : ^ParticleSystem
 
 draw_player :: proc(using player : ^Player) {
     if !alive do return
-    rl.DrawCircleV(center = pos, radius = siz / 2, color = rl.WHITE)
+    radius := siz / 2
+    thruster_size := rl.Vector2{5, 5}
+    rl.DrawRectangleV(pos + {+radius, 0} - thruster_size / 2, thruster_size, rl.GRAY)
+    rl.DrawRectangleV(pos + {-radius, 0} - thruster_size / 2, thruster_size, rl.GRAY)
+    rl.DrawRectangleV(pos + {0, +radius} - thruster_size / 2, thruster_size, rl.GRAY)
+    rl.DrawRectangleV(pos + {0, -radius} - thruster_size / 2, thruster_size, rl.GRAY)
+
+    rl.DrawCircleV(pos, radius, rl.RAYWHITE)
 }
 
 get_player_rect :: proc(using player : ^Player) -> rl.Rectangle {

@@ -5,7 +5,7 @@ import "core:time"
 import "core:math"
 import "core:math/rand"
 import "core:math/linalg"
-import rl       "vendor:raylib"
+import rl "vendor:raylib"
 
 @(optimization_mode="speed")
 tick_projectiles_screen_collision :: proc(projectiles : ^Projectiles) {
@@ -23,7 +23,7 @@ tick_projectiles_screen_collision :: proc(projectiles : ^Projectiles) {
 @(optimization_mode="speed")
 tick_projectiles_enemy_collision :: proc(projectiles : ^Projectiles, enemies : ^Enemies, ps : ^ParticleSystem, audio : ^Audio) {
     instances := projectiles.instances
-    projectile_loop : for proj_idx := 0; proj_idx < projectiles.count; proj_idx += 1 {
+    #no_bounds_check projectile_loop : for proj_idx := 0; proj_idx < projectiles.count; proj_idx += 1 {
         proj := projectiles.instances[proj_idx]
 
         enemy_cell_check_origin := get_cell_coord(enemies.grid, proj.pos)

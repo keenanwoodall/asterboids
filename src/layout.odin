@@ -8,6 +8,10 @@ Rect :: rl.Rectangle
 @(private="file")
 Vector2 :: rl.Vector2
 
+screen_rect :: proc() -> Rect {
+    return {0, 0, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()) }
+}
+
 centered_rect :: proc {
     screen_centered_rect,
     rect_centered_rect,
@@ -50,8 +54,8 @@ uniform_padded_rect :: proc(using rect : Rect, pad : f32) -> Rect {
     return { rect.x + pad, rect.y + pad, rect.width - pad * 2, rect.height - pad * 2 }
 }
 
-centered_label_rect :: proc(rect : Rect, label : cstring) -> Rect {
-    label_width := get_label_width(label)
+centered_label_rect :: proc(rect : Rect, label : cstring, font_size : i32 = 10) -> Rect {
+    label_width := get_label_width(label, font_size)
     return { 
         rect.x - (label_width - rect.width) / 2,
         rect.y,

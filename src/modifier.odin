@@ -109,9 +109,9 @@ ModifierChoices := map[ModifierType]ModifierPair {
     .WeaponAccuracy = {
         positive_mod = {
             type        = .WeaponAccuracy,
-            description = "Accuracy + 30%",
-            is_valid    = proc(game : ^Game) -> bool { return game.weapon.spread > 0 },
-            on_choose   = proc(game : ^Game) { game.weapon.spread = math.max(0, game.weapon.spread - game.weapon.speed * 0.3) }
+            description = "Accuracy + 50%",
+            is_valid    = proc(game : ^Game) -> bool { return game.weapon.spread > 0.05 },
+            on_choose   = proc(game : ^Game) { game.weapon.spread *= 0.5 }
         },
         negative_mod = {
             type        = .WeaponAccuracy,
@@ -123,8 +123,8 @@ ModifierChoices := map[ModifierType]ModifierPair {
     .WeaponBounce = {
         positive_mod = {
             type        = .WeaponBounce,
-            description = "Bounces + 1",
-            on_choose   = proc(game : ^Game) { game.weapon.bounces += 1 }
+            description = "Bounces + 2",
+            on_choose   = proc(game : ^Game) { game.weapon.bounces += 2 }
         },
         negative_mod = {
             type        = .WeaponBounce,

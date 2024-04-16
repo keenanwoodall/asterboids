@@ -23,14 +23,14 @@ init_projectiles :: proc(using projectiles : ^Projectiles) {
 }
 
 tick_projectiles :: proc(using projectiles : ^Projectiles, dt : f32) {
-    for i := 0; i < count; i += 1 {
+    #no_bounds_check for i := 0; i < count; i += 1 {
         instances[i].pos += instances[i].dir * instances[i].spd * dt
     }
 }
 
 draw_projectiles :: proc(using projectiles : ^Projectiles) {
     rl.rlSetLineWidth(2)
-    for i in 0..<count {
+    #no_bounds_check for i in 0..<count {
         using inst := instances[i]
         rl.DrawLineV(pos, pos + dir * len, rl.ORANGE)
     }

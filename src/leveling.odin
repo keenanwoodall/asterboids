@@ -32,7 +32,7 @@ tick_leveling :: proc(using game : ^Game) {
             leveling.level_up_choice_a = choice_a
             leveling.level_up_choice_b = choice_b     
 
-            try_play_sound(audio, audio.level_up)
+            try_play_sound(&audio, audio.level_up)
         }
         else do fmt.printfln("ERROR. Could not find valid mod choices.")
     }
@@ -64,14 +64,14 @@ draw_level_up_gui :: proc(using game : ^Game) {
     if rl.GuiButton(choice_rects[0], "") {
         leveling.leveling_up = false
         choice_pair_a.positive_mod.on_choose(game)
-        choice_pair_a.negative_mod.on_choose(game)
-        try_play_sound(audio, audio.level_up_conf)
+        //choice_pair_a.negative_mod.on_choose(game)
+        try_play_sound(&audio, audio.level_up_conf)
     }
     if rl.GuiButton(choice_rects[1], "") {
         leveling.leveling_up = false
         choice_pair_b.positive_mod.on_choose(game)
-        choice_pair_b.negative_mod.on_choose(game)
-        try_play_sound(audio, audio.level_up_conf)
+        //choice_pair_b.negative_mod.on_choose(game)
+        try_play_sound(&audio, audio.level_up_conf)
     }
 
     if rl.GuiButton(skip_rect, "Skip") {
@@ -80,28 +80,36 @@ draw_level_up_gui :: proc(using game : ^Game) {
 
     rl.GuiLabel(or_rect, or_text)
 
-    choice_a_rects := v_subdivide_rect(choice_rects[0], 2)
-    choice_b_rects := v_subdivide_rect(choice_rects[1], 2)
+    //choice_a_rects := v_subdivide_rect(choice_rects[0], 2)
+    //choice_b_rects := v_subdivide_rect(choice_rects[1], 2)
 
-    rl.DrawRectangleRec(choice_a_rects[0], {0, 255, 0, 50})
-    rl.DrawRectangleRec(choice_b_rects[0], {0, 255, 0, 50})
+    // rl.DrawRectangleRec(choice_a_rects[0], {0, 255, 0, 50})
+    // rl.DrawRectangleRec(choice_b_rects[0], {0, 255, 0, 50})
 
-    rl.DrawRectangleRec(choice_a_rects[1], {255, 0, 0, 50})
-    rl.DrawRectangleRec(choice_b_rects[1], {255, 0, 0, 50})
+    // rl.DrawRectangleRec(choice_a_rects[1], {255, 0, 0, 50})
+    // rl.DrawRectangleRec(choice_b_rects[1], {255, 0, 0, 50})
 
-    uniform_pad_rects(15, &choice_a_rects)
-    uniform_pad_rects(15, &choice_b_rects)
+    choice_a_rect := choice_rects[0]
+    choice_b_rect := choice_rects[1]
 
-    choice_a_positive_rect := centered_label_rect(choice_a_rects[0], choice_pair_a.positive_mod.description)
-    choice_a_negative_rect := centered_label_rect(choice_a_rects[1], choice_pair_a.negative_mod.description)
+    rl.DrawRectangleRec(choice_a_rect, {0, 255, 0, 50})
+    rl.DrawRectangleRec(choice_b_rect, {0, 255, 0, 50})
 
-    choice_b_positive_rect := centered_label_rect(choice_b_rects[0], choice_pair_b.positive_mod.description)
-    choice_b_negative_rect := centered_label_rect(choice_b_rects[1], choice_pair_b.negative_mod.description)
+    choice_a_rect = uniform_padded_rect(choice_a_rect, 15)
+    choice_b_rect = uniform_padded_rect(choice_b_rect, 15)
+
+    choice_a_positive_rect := centered_label_rect(choice_a_rect, choice_pair_a.positive_mod.description)
+    //choice_a_positive_rect := centered_label_rect(choice_a_rects[0], choice_pair_a.positive_mod.description)
+    //choice_a_negative_rect := centered_label_rect(choice_a_rects[1], choice_pair_a.negative_mod.description)
+
+    choice_b_positive_rect := centered_label_rect(choice_b_rect, choice_pair_b.positive_mod.description)
+    //choice_b_positive_rect := centered_label_rect(choice_b_rects[0], choice_pair_b.positive_mod.description)
+    //choice_b_negative_rect := centered_label_rect(choice_b_rects[1], choice_pair_b.negative_mod.description)
 
     rl.GuiLabel(choice_a_positive_rect, choice_pair_a.positive_mod.description)
-    rl.GuiLabel(choice_a_negative_rect, choice_pair_a.negative_mod.description)
+    //rl.GuiLabel(choice_a_negative_rect, choice_pair_a.negative_mod.description)
     rl.GuiLabel(choice_b_positive_rect, choice_pair_b.positive_mod.description)
-    rl.GuiLabel(choice_b_negative_rect, choice_pair_b.negative_mod.description)
+    //rl.GuiLabel(choice_b_negative_rect, choice_pair_b.negative_mod.description)
 }
 
 get_target_xp :: proc(level : int) -> int {

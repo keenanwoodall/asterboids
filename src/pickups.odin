@@ -51,20 +51,20 @@ tick_pickups :: proc(using game : ^Game, dt : f32) {
         if dist < PICKUP_RADIUS + player.siz / 2 {
             if pickup.xp > 0 {
                 game.leveling.xp += pickup.xp
-                try_play_sound(audio, audio.collect_xp)
+                try_play_sound(&audio, audio.collect_xp)
             }
             if pickup.hp > 0 {
                 game.player.hth = min(game.player.hth + f32(pickup.hp), game.player.max_hth)
-                try_play_sound(audio, audio.collect_hp)
+                try_play_sound(&audio, audio.collect_hp)
             }
-            spawn_particles_burst(line_particles, player.pos, pickup.vel * 0.5, 32, 50, 200, 0.2, 0.5, pickup.col, drag = 3)
+            spawn_particles_burst(&line_particles, player.pos, pickup.vel * 0.5, 32, 50, 200, 0.2, 0.5, pickup.col, drag = 3)
             pool_release(&pickups.pool, i)
             i -= 1
             continue
         }
         else if dist < PICKUP_ATTRACTION_RADIUS || pickup.following {
             dir         := diff / dist
-            pickup.vel  += dir * PICKUP_ATTRACTION_FORCE * dt;
+            pickup.vel  += dir * PICKUP_ATTRACTION_FORCE * math.smoothstep(f32(0.5), 1, f32(pickup.time)) * dt;
 
             pickup.following   = true
         }
