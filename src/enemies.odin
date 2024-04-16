@@ -119,17 +119,6 @@ tick_killed_enemies :: proc(using enemies : ^Enemies, pickups : ^Pickups, ps : ^
             }
         }
     }
-    // for i in 0..<count {
-    //     using enemy := instances[i]
-    //     if kill {
-    //         release_enemy(i, enemies)
-    //         spawn_particles_triangle_segments(ps, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
-
-    //         for i in 0..<enemy.loot {
-    //             spawn_pickup(pickups, pos, rand.choice_enum(PickupType))
-    //         }
-    //     }
-    // }
 }
 
 draw_enemies_grid :: proc(using enemies : ^Enemies) {

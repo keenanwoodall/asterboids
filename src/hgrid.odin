@@ -33,7 +33,7 @@ clear_cell_data :: proc(using grid : ^HGrid($T)) {
     }
 }
 
-get_cell_coord :: proc(using grid : ^HGrid($T), pos : float2) -> int2 {
+get_cell_coord :: #force_inline proc(using grid : ^HGrid($T), pos : float2) -> int2 {
     return {int(pos.x / cell_size), int(pos.y / cell_size)}
 }
 
@@ -49,7 +49,7 @@ insert_cell_data :: proc(using grid : ^HGrid($T), cell_coord : int2, data : ^T, 
     cells[cell_coord] = values
 }
 
-get_cell_data :: proc(using grid : ^HGrid($T), cell_coord : int2) -> (data : []^T, ok : bool) {
+get_cell_data :: #force_inline proc(using grid : ^HGrid($T), cell_coord : int2) -> (data : []^T, ok : bool) {
     result, success := cells[cell_coord]
     return result[:], success
 }
