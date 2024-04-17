@@ -99,6 +99,7 @@ draw_game :: proc(using game : ^Game) {
     }
 
     rl.DrawFPS(10, 10)
+    rl.DrawText(rl.TextFormat("Enemies: %i", enemies.count), 10, 30, 20, rl.WHITE)
 
     if !player.alive {
         label := strings.clone_to_cstring(

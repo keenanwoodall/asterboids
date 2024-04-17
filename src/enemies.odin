@@ -5,7 +5,10 @@ import "core:math"
 import "core:time"
 import "core:math/rand"
 import "core:math/linalg"
+
 import rl "vendor:raylib"
+
+import "../external/jobs"
 
 MAX_ENEMIES             :: 1080
 ENEMY_SIZE              :: 6
@@ -35,14 +38,15 @@ Enemy :: struct {
 Enemies :: struct {
     count       : int,
     kill_count  : int,
-    grid        : ^HGrid(Enemy),
+    grid        : ^HGrid(int),
     instances   : [MAX_ENEMIES]Enemy,
+    new_instances   : [MAX_ENEMIES]Enemy,
 }
 
 init_enemies :: proc(using enemies : ^Enemies) {
     count       = 0
     kill_count  = 0
-    grid        = new(HGrid(Enemy))
+    grid        = new(HGrid(int))
     cell_size   : f32 = max(ENEMY_ALIGNMENT_RADIUS, ENEMY_COHESION_RADIUS, ENEMY_SEPARATION_RADIUS)
     init_cell_data(grid, cell_size)
 }
@@ -54,37 +58,71 @@ unload_enemies :: proc(using enemies : ^Enemies) {
 
 @(optimization_mode="speed")
 tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
+    @(static) frame_count : int
+    frame_count += 1
+
     clear_cell_data(grid)
+
+    if count == 0 do return
 
     #no_bounds_check for i in 0..<count {
         using enemy := instances[i]
-        cell_coord := get_cell_coord(grid, pos)
-        insert_cell_data(grid, cell_coord, &instances[i])
+        cell_coord := get_cell_coord(grid^, pos)
+        insert_cell_data(grid, cell_coord, i)
     }
 
-    #no_bounds_check for enemy, i in instances[:count] {
-        using enemy := instances[i]
+    copy_slice(dst = new_instances[:count], src = instances[:count])
 
-        // Sum steering forces
-        steer_force := rl.Vector2{}
-        if player.alive {
-            steer_force += follow(i, enemies, player.pos) * ENEMY_FOLLOW_FACTOR
-        }
-        steer_force += #force_inline alignment(i, enemies) * ENEMY_ALIGNMENT_FACTOR
-        steer_force += #force_inline cohesion(i, enemies) * ENEMY_COHESION_FACTOR
-        steer_force += #force_inline separation(i, enemies) * ENEMY_SEPARATION_FACTOR
-        
-        vel += steer_force * dt
-        vel = limit_length(vel, ENEMY_SPEED / siz)
-
-        pos += vel * dt
-
-        if dir, ok := safe_normalize(vel); ok {
-            rot = math.angle_lerp(rot, math.atan2(dir.y, dir.x) - math.PI / 2, 1 - math.exp(-dt * ENEMY_TURN_SPEED))
-        }
-
-        instances[i] = enemy
+    JobData :: struct { 
+        read    : []Enemy,
+        write   : []Enemy,
+        grid    : HGrid(int),
+        cell    : [dynamic]int,
+        player  : Player,
+        dt      : f32 
     }
+
+    jobs_group      : jobs.Group
+    cell_jobs       := make([]jobs.Job, len(grid.cells), context.temp_allocator)
+    cell_jobs_data  := make([]JobData, len(grid.cells), context.temp_allocator)
+
+    job_idx := 0
+    for cell_coord, &enemy_indices in grid.cells {
+        cell_jobs_data[job_idx] = JobData {
+            instances[:], 
+            new_instances[:], 
+            grid^, 
+            enemy_indices, 
+            player^, 
+            dt
+        }
+        cell_jobs[job_idx] = jobs.make_job_typed(&jobs_group, &cell_jobs_data[job_idx], proc(using job_data : ^JobData) {
+            for enemy_idx in cell {
+                using enemy := &write[enemy_idx]
+                // Sum steering forces
+                steer_force := rl.Vector2{}
+                if player.alive {
+                    steer_force += #force_inline follow(enemy_idx, read, player.pos) * ENEMY_FOLLOW_FACTOR
+                }
+                steer_force += #force_inline alignment(enemy_idx, read, grid) * ENEMY_ALIGNMENT_FACTOR
+                steer_force += #force_inline cohesion(enemy_idx, read, grid) * ENEMY_COHESION_FACTOR
+                steer_force += #force_inline separation(enemy_idx, read, grid) * ENEMY_SEPARATION_FACTOR
+                vel += steer_force * dt
+                vel = limit_length(vel, ENEMY_SPEED / siz)
+                pos += vel * dt
+                if dir, ok := safe_normalize(vel); ok {
+                    rot = math.angle_lerp(rot, math.atan2(dir.y, dir.x) - math.PI / 2, 1 - math.exp(-dt * ENEMY_TURN_SPEED))
+                }
+            }
+        })
+
+        job_idx += 1
+    }
+
+    jobs.dispatch_jobs(.High, cell_jobs)
+    jobs.wait(&jobs_group)
+
+    copy_slice(dst = instances[:count], src = new_instances[:count])
 }
 
 draw_enemies :: proc(using enemies : ^Enemies) {
@@ -158,8 +196,8 @@ check_enemy_line_collision :: proc(line_start, line_end : rl.Vector2, enemy : En
 }
 
 @(private="file")
-follow :: proc(index : int, using enemies : ^Enemies, target : rl.Vector2) -> rl.Vector2 {
-    current  := instances[index]
+follow :: proc(index : int, enemies : []Enemy, target : rl.Vector2) -> rl.Vector2 {
+    current  := enemies[index]
     steering := linalg.normalize(target - current.pos) * ENEMY_SPEED
     steering -= current.vel
     steering = limit_length(steering, ENEMY_FORCE)
@@ -167,20 +205,25 @@ follow :: proc(index : int, using enemies : ^Enemies, target : rl.Vector2) -> rl
 }
 
 @(private="file")
-alignment :: proc(index : int, using enemies : ^Enemies) -> rl.Vector2 {
-    enemy           := &instances[index]
+alignment :: proc(index : int, enemies : []Enemy, grid : HGrid(int)) -> rl.Vector2 {
+    enemy           := enemies[index]
     steering        := rl.Vector2{}
     neighbor_count  := 0
     cell_coord      := get_cell_coord(grid, enemy.pos)
 
     for x_offset in -1..=1 {
         for y_offset in -1..=1 {
-            other_enemies, ok := get_cell_data(grid, cell_coord + {x_offset, y_offset})
+            other_enemy_indices, ok := get_cell_data(grid, cell_coord + {x_offset, y_offset})
             if !ok do continue
-            for &other_enemy, other_idx in other_enemies {
-                // Check if other enemy ptr is to the same address
-                // or the enemies are of different types
-                if enemy == other_enemy || other_enemy.id != enemy.id do continue
+            for other_enemy_idx in other_enemy_indices {
+                // Check if other enemy is the same
+                if index == other_enemy_idx do continue
+
+                other_enemy := enemies[other_enemy_idx]
+
+                // Check if other enemy archetype is the same
+                if enemy.id == other_enemy.id do continue
+
                 
                 sqr_dist := linalg.length2(enemy.pos - other_enemy.pos)
                 if sqr_dist > ENEMY_ALIGNMENT_RADIUS * ENEMY_ALIGNMENT_RADIUS do continue
@@ -202,20 +245,24 @@ alignment :: proc(index : int, using enemies : ^Enemies) -> rl.Vector2 {
 }
 
 @(private="file")
-cohesion :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
-    enemy           := &instances[index]
+cohesion :: proc (index : int, enemies : []Enemy, grid : HGrid(int)) -> rl.Vector2 {
+    enemy           := enemies[index]
     steering        := rl.Vector2{}
     neighbor_count  := 0
     cell_coord      := get_cell_coord(grid, enemy.pos)
 
     for x_offset in -1..=1 {
         for y_offset in -1..=1 {
-            other_enemies, ok := get_cell_data(grid, cell_coord + {x_offset, y_offset})
+            other_enemy_indices, ok := get_cell_data(grid, cell_coord + {x_offset, y_offset})
             if !ok do continue
-            for &other_enemy, other_idx in other_enemies {
-                // Check if other enemy ptr is to the same address
-                // or the enemies are of different types
-                if enemy == other_enemy || other_enemy.id != enemy.id do continue
+            for other_enemy_idx in other_enemy_indices {
+                // Check if other enemy is the same
+                if index == other_enemy_idx do continue
+
+                other_enemy := enemies[other_enemy_idx]
+
+                // Check if other enemy archetype is the same
+                if enemy.id == other_enemy.id do continue
                 
                 sqr_dist := linalg.length2(enemy.pos - other_enemy.pos)
                 if sqr_dist > ENEMY_COHESION_RADIUS * ENEMY_COHESION_RADIUS do continue
@@ -238,19 +285,21 @@ cohesion :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
 }
 
 @(private="file")
-separation :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
-    enemy         := instances[index]
+separation :: proc (index : int, enemies : []Enemy, grid : HGrid(int)) -> rl.Vector2 {
+    enemy           := enemies[index]
     steering        := rl.Vector2{}
     neighbor_count  := 0
     cell_coord      := get_cell_coord(grid, enemy.pos)
 
     for x_offset in -1..=1 {
         for y_offset in -1..=1 {
-            other_enemies, ok := get_cell_data(grid, cell_coord + {x_offset, y_offset})
+            other_enemy_indices, ok := get_cell_data(grid, cell_coord + {x_offset, y_offset})
             if !ok do continue
-            for other_enemy, other_idx in other_enemies {
-                // Check if other enemy ptr is to the same address
-                if &instances[index] == other_enemies[other_idx] do continue
+            for other_enemy_idx in other_enemy_indices {
+                // Check if other enemy is the same
+                if index == other_enemy_idx do continue
+
+                other_enemy := enemies[other_enemy_idx]
                 
                 sqr_dist := linalg.length2(enemy.pos - other_enemy.pos)
                 if sqr_dist > enemy.siz * enemy.siz + other_enemy.siz * other_enemy.siz + ENEMY_SEPARATION_RADIUS * ENEMY_SEPARATION_RADIUS {

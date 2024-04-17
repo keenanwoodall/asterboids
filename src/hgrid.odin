@@ -8,14 +8,14 @@ int2    :: [2]int
 float2  :: [2]f32
 
 HGrid :: struct($T : typeid) {
-    cells           : map[int2][dynamic]^T,
+    cells           : map[int2][dynamic]T,
     pos_ptr_offset  : u16,
     cell_size       : f32,
 }
 
 init_cell_data :: proc(grid : ^HGrid($T), cell_size : f32){
     grid.cell_size = cell_size
-    grid.cells     = make(map[int2][dynamic]^T)
+    grid.cells     = make(map[int2][dynamic]T)
 }
 
 delete_cell_data :: proc(using grid : ^HGrid($T)) {
@@ -33,15 +33,15 @@ clear_cell_data :: proc(using grid : ^HGrid($T)) {
     }
 }
 
-get_cell_coord :: #force_inline proc(using grid : ^HGrid($T), pos : float2) -> int2 {
+get_cell_coord :: #force_inline proc(using grid : HGrid($T), pos : float2) -> int2 {
     return {int(pos.x / cell_size), int(pos.y / cell_size)}
 }
 
-insert_cell_data :: proc(using grid : ^HGrid($T), cell_coord : int2, data : ^T, allocator := context.allocator) {
+insert_cell_data :: proc(using grid : ^HGrid($T), cell_coord : int2, data : T, allocator := context.allocator) {
     values, ok := cells[cell_coord]
 
     if !ok {
-        values = make([dynamic]^T)
+        values = make([dynamic]T)
         cells[cell_coord] = values
     }
 
@@ -49,7 +49,7 @@ insert_cell_data :: proc(using grid : ^HGrid($T), cell_coord : int2, data : ^T, 
     cells[cell_coord] = values
 }
 
-get_cell_data :: #force_inline proc(using grid : ^HGrid($T), cell_coord : int2) -> (data : []^T, ok : bool) {
+get_cell_data :: #force_inline proc(using grid : HGrid($T), cell_coord : int2) -> (data : []T, ok : bool) {
     result, success := cells[cell_coord]
     return result[:], success
 }

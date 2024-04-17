@@ -35,6 +35,11 @@ tick_waves :: proc(waves : ^Waves, enemies : ^Enemies, dt : f32, time : f64) {
 
     if enemies.count == 0 do waves.no_enemies_timer += dt
 
+    if rl.IsKeyPressed(.N) {
+        enemies.count = 0
+        waves.no_enemies_timer = 10000
+    }
+
     if elapsed > waves.wave_duration || waves.no_enemies_timer > 2 {
         waves.wave_idx += 1
 
