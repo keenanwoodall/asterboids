@@ -58,9 +58,6 @@ unload_enemies :: proc(using enemies : ^Enemies) {
 
 @(optimization_mode="speed")
 tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
-    @(static) frame_count : int
-    frame_count += 1
-
     clear_cell_data(grid)
 
     if count == 0 do return
@@ -97,6 +94,8 @@ tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
             dt
         }
         cell_jobs[job_idx] = jobs.make_job_typed(&jobs_group, &cell_jobs_data[job_idx], proc(using job_data : ^JobData) {
+            if len(cell) == 0 do return
+
             for enemy_idx in cell {
                 using enemy := &write[enemy_idx]
                 // Sum steering forces

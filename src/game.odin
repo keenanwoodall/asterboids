@@ -47,7 +47,7 @@ unload_game :: proc(using game : ^Game) {
 }
 
 tick_game :: proc(using game : ^Game) {
-    spall.SCOPED_EVENT(&spall_ctx, &spall_buffer, "Tick")
+    //spall.SCOPED_EVENT(&spall_ctx, &spall_buffer, "Tick")
     dt := rl.GetFrameTime();
 
     if !leveling.leveling_up {
@@ -77,7 +77,7 @@ tick_game :: proc(using game : ^Game) {
 }
 
 draw_game :: proc(using game : ^Game) {
-    spall.SCOPED_EVENT(&spall_ctx, &spall_buffer, "Draw")
+    //spall.SCOPED_EVENT(&spall_ctx, &spall_buffer, "Draw")
     rl.BeginDrawing()
     defer rl.EndDrawing()
     

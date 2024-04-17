@@ -40,7 +40,7 @@ main :: proc() {
         @(static) frame_number := 0
         defer frame_number += 1
         scope_name := fmt.tprintf("frame %v", frame_number)
-        spall.SCOPED_EVENT(&spall_ctx, &spall_buffer, scope_name)
+        //spall.SCOPED_EVENT(&spall_ctx, &spall_buffer, scope_name)
 
         tick_game(&game)
         draw_game(&game)
