@@ -29,6 +29,7 @@ Enemy :: struct {
     hp      : int,
     kill    : bool,
     loot    : int,
+    id      : u8,
 }
 
 Enemies :: struct {
@@ -167,7 +168,7 @@ follow :: proc(index : int, using enemies : ^Enemies, target : rl.Vector2) -> rl
 
 @(private="file")
 alignment :: proc(index : int, using enemies : ^Enemies) -> rl.Vector2 {
-    enemy           := instances[index]
+    enemy           := &instances[index]
     steering        := rl.Vector2{}
     neighbor_count  := 0
     cell_coord      := get_cell_coord(grid, enemy.pos)
@@ -176,9 +177,10 @@ alignment :: proc(index : int, using enemies : ^Enemies) -> rl.Vector2 {
         for y_offset in -1..=1 {
             other_enemies, ok := get_cell_data(grid, cell_coord + {x_offset, y_offset})
             if !ok do continue
-            for other_enemy, other_idx in other_enemies {
+            for &other_enemy, other_idx in other_enemies {
                 // Check if other enemy ptr is to the same address
-                if &instances[index] == other_enemies[other_idx] do continue
+                // or the enemies are of different types
+                if enemy == other_enemy || other_enemy.id != enemy.id do continue
                 
                 sqr_dist := linalg.length2(enemy.pos - other_enemy.pos)
                 if sqr_dist > ENEMY_ALIGNMENT_RADIUS * ENEMY_ALIGNMENT_RADIUS do continue
@@ -201,7 +203,7 @@ alignment :: proc(index : int, using enemies : ^Enemies) -> rl.Vector2 {
 
 @(private="file")
 cohesion :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
-    enemy           := instances[index]
+    enemy           := &instances[index]
     steering        := rl.Vector2{}
     neighbor_count  := 0
     cell_coord      := get_cell_coord(grid, enemy.pos)
@@ -210,9 +212,10 @@ cohesion :: proc (index : int, using enemies : ^Enemies) -> rl.Vector2 {
         for y_offset in -1..=1 {
             other_enemies, ok := get_cell_data(grid, cell_coord + {x_offset, y_offset})
             if !ok do continue
-            for other_enemy, other_idx in other_enemies {
+            for &other_enemy, other_idx in other_enemies {
                 // Check if other enemy ptr is to the same address
-                if &instances[index] == other_enemies[other_idx] do continue
+                // or the enemies are of different types
+                if enemy == other_enemy || other_enemy.id != enemy.id do continue
                 
                 sqr_dist := linalg.length2(enemy.pos - other_enemy.pos)
                 if sqr_dist > ENEMY_COHESION_RADIUS * ENEMY_COHESION_RADIUS do continue

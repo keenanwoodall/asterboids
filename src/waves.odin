@@ -75,14 +75,18 @@ spawn_new_wave :: proc(enemy_count : int, waves : ^Waves, enemies : ^Enemies, sp
 
     for i in 0..<enemy_count * 2 {
         archetype : Archetype
+        id        : u8
         if x := rand.float32_range(0, 10); x < 7 {
             archetype = archetypes[0]
+            id = 0
         }
         else if x < 9 {
             archetype = archetypes[1]
+            id = 1
         }
         else {
             archetype = archetypes[2]
+            id = 2
         }
 
         new_enemy : Enemy = {
@@ -91,7 +95,8 @@ spawn_new_wave :: proc(enemy_count : int, waves : ^Waves, enemies : ^Enemies, sp
             siz     = archetype.size,
             hp      = archetype.hp,
             loot    = archetype.loot,
-            col     = archetype.color
+            col     = archetype.color,
+            id      = id,
         }
 
         add_enemy(new_enemy, enemies)
