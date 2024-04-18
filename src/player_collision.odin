@@ -10,8 +10,8 @@ ENEMY_DPS :: 300
 tick_player_enemy_collision_:: proc(using player : ^Player, enemies : ^Enemies, ps : ^ParticleSystem, dt : f32) {
     if !alive do return
 
-    player_cell_coord       := get_cell_coord(enemies.grid^, pos)
-    enemy_indices, exists   := get_cell_data(enemies.grid^, player_cell_coord)
+    player_cell_coord       := get_cell_coord(enemies.grid, pos)
+    enemy_indices, exists   := get_cell_data(enemies.grid, player_cell_coord)
     if !exists do return
     for enemy_idx in enemy_indices {
         using enemy := &enemies.instances[enemy_idx]

@@ -25,12 +25,12 @@ tick_leveling :: proc(using game : ^Game) {
         leveling.lvl += 1
         leveling.xp = 0
         choice_a, a_ok := random_modifier_pair(game)
-        choice_b, b_ok := random_modifier_pair(game)
+        choice_b, b_ok := random_modifier_pair(game, choice_a.positive_mod.type)
 
         if a_ok && b_ok {
             leveling.leveling_up = true
             leveling.level_up_choice_a = choice_a
-            leveling.level_up_choice_b = choice_b     
+            leveling.level_up_choice_b = choice_b
 
             try_play_sound(&audio, audio.level_up)
         }
@@ -60,19 +60,48 @@ draw_level_up_gui :: proc(using game : ^Game) {
     choice_rects    := h_subdivide_rect(choices_rect, 2)
     uniform_pad_rects(15, &choice_rects)
 
+    choice_left_rects := v_split_rect(choice_rects[0], bias = -5)
+    choice_right_rects := v_split_rect(choice_rects[1], bias = -5)
+
+    v_pad_rects(5, &choice_left_rects)
+    v_pad_rects(5, &choice_right_rects)
+
     rl.GuiPanel(window_rect, "Level up!")
-    if rl.GuiButton(choice_rects[0], "") {
+    
+    EnableGUI :: proc(enable : bool) {
+        if enable {
+            rl.GuiEnable()
+        }
+        else {
+            rl.GuiDisable()
+        }
+    }
+
+    EnableGUI(is_mod_valid(choice_pair_a.positive_mod, game))
+    if rl.GuiButton(choice_left_rects[0], choice_pair_a.positive_mod.description) {
         leveling.leveling_up = false
         choice_pair_a.positive_mod.on_choose(game)
-        //choice_pair_a.negative_mod.on_choose(game)
         try_play_sound(&audio, audio.level_up_conf)
     }
-    if rl.GuiButton(choice_rects[1], "") {
+    EnableGUI(is_mod_valid(choice_pair_a.negative_mod, game))
+    if rl.GuiButton(choice_left_rects[1], choice_pair_a.negative_mod.description) {
+        leveling.leveling_up = false
+        choice_pair_a.negative_mod.on_choose(game)
+        try_play_sound(&audio, audio.level_up_conf)
+    }
+    EnableGUI(is_mod_valid(choice_pair_b.positive_mod, game))
+    if rl.GuiButton(choice_right_rects[0], choice_pair_b.positive_mod.description) {
         leveling.leveling_up = false
         choice_pair_b.positive_mod.on_choose(game)
-        //choice_pair_b.negative_mod.on_choose(game)
         try_play_sound(&audio, audio.level_up_conf)
     }
+    EnableGUI(is_mod_valid(choice_pair_b.negative_mod, game))
+    if rl.GuiButton(choice_right_rects[1], choice_pair_b.negative_mod.description) {
+        leveling.leveling_up = false
+        choice_pair_b.negative_mod.on_choose(game)
+        try_play_sound(&audio, audio.level_up_conf)
+    }
+    EnableGUI(true)
 
     if rl.GuiButton(skip_rect, "Skip") {
         leveling.leveling_up = false
@@ -80,36 +109,13 @@ draw_level_up_gui :: proc(using game : ^Game) {
 
     rl.GuiLabel(or_rect, or_text)
 
-    //choice_a_rects := v_subdivide_rect(choice_rects[0], 2)
-    //choice_b_rects := v_subdivide_rect(choice_rects[1], 2)
-
-    // rl.DrawRectangleRec(choice_a_rects[0], {0, 255, 0, 50})
-    // rl.DrawRectangleRec(choice_b_rects[0], {0, 255, 0, 50})
-
-    // rl.DrawRectangleRec(choice_a_rects[1], {255, 0, 0, 50})
-    // rl.DrawRectangleRec(choice_b_rects[1], {255, 0, 0, 50})
-
     choice_a_rect := choice_rects[0]
     choice_b_rect := choice_rects[1]
 
-    rl.DrawRectangleRec(choice_a_rect, {0, 255, 0, 50})
-    rl.DrawRectangleRec(choice_b_rect, {0, 255, 0, 50})
-
-    choice_a_rect = uniform_padded_rect(choice_a_rect, 15)
-    choice_b_rect = uniform_padded_rect(choice_b_rect, 15)
-
-    choice_a_positive_rect := centered_label_rect(choice_a_rect, choice_pair_a.positive_mod.description)
-    //choice_a_positive_rect := centered_label_rect(choice_a_rects[0], choice_pair_a.positive_mod.description)
-    //choice_a_negative_rect := centered_label_rect(choice_a_rects[1], choice_pair_a.negative_mod.description)
-
-    choice_b_positive_rect := centered_label_rect(choice_b_rect, choice_pair_b.positive_mod.description)
-    //choice_b_positive_rect := centered_label_rect(choice_b_rects[0], choice_pair_b.positive_mod.description)
-    //choice_b_negative_rect := centered_label_rect(choice_b_rects[1], choice_pair_b.negative_mod.description)
-
-    rl.GuiLabel(choice_a_positive_rect, choice_pair_a.positive_mod.description)
-    //rl.GuiLabel(choice_a_negative_rect, choice_pair_a.negative_mod.description)
-    rl.GuiLabel(choice_b_positive_rect, choice_pair_b.positive_mod.description)
-    //rl.GuiLabel(choice_b_negative_rect, choice_pair_b.negative_mod.description)
+    // rl.DrawRectangleRec(choice_left_rects[0], {0, 255, 0, 50})
+    // rl.DrawRectangleRec(choice_right_rects[0], {0, 255, 0, 50})
+    // rl.DrawRectangleRec(choice_left_rects[1], {255, 0, 0, 50})
+    // rl.DrawRectangleRec(choice_right_rects[1], {255, 0, 0, 50})
 }
 
 get_target_xp :: proc(level : int) -> int {

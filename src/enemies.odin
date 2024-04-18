@@ -38,7 +38,7 @@ Enemy :: struct {
 Enemies :: struct {
     count       : int,
     kill_count  : int,
-    grid        : ^HGrid(int),
+    grid        : HGrid(int),
     instances   : [MAX_ENEMIES]Enemy,
     new_instances   : [MAX_ENEMIES]Enemy,
 }
@@ -46,26 +46,25 @@ Enemies :: struct {
 init_enemies :: proc(using enemies : ^Enemies) {
     count       = 0
     kill_count  = 0
-    grid        = new(HGrid(int))
+    grid        = {}
     cell_size   : f32 = max(ENEMY_ALIGNMENT_RADIUS, ENEMY_COHESION_RADIUS, ENEMY_SEPARATION_RADIUS)
-    init_cell_data(grid, cell_size)
+    init_cell_data(&grid, cell_size)
 }
 
 unload_enemies :: proc(using enemies : ^Enemies) {
     delete_cell_data(grid)
-    free(grid)
 }
 
 @(optimization_mode="speed")
-tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
-    clear_cell_data(grid)
+tick_enemies :: proc(using enemies : ^Enemies, player : Player, dt : f32) {
+    clear_cell_data(&grid)
 
     if count == 0 do return
 
     #no_bounds_check for i in 0..<count {
         using enemy := instances[i]
-        cell_coord := get_cell_coord(grid^, pos)
-        insert_cell_data(grid, cell_coord, i)
+        cell_coord := get_cell_coord(grid, pos)
+        insert_cell_data(&grid, cell_coord, i)
     }
 
     copy_slice(dst = new_instances[:count], src = instances[:count])
@@ -88,9 +87,9 @@ tick_enemies :: proc(using enemies : ^Enemies, player : ^Player, dt : f32) {
         cell_jobs_data[job_idx] = JobData {
             instances[:], 
             new_instances[:], 
-            grid^, 
+            grid, 
             enemy_indices, 
-            player^, 
+            player, 
             dt
         }
         cell_jobs[job_idx] = jobs.make_job_typed(&jobs_group, &cell_jobs_data[job_idx], proc(using job_data : ^JobData) {

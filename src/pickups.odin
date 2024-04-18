@@ -94,10 +94,10 @@ spawn_pickup :: proc(using pickups : ^Pickups, pos : rl.Vector2, type : PickupTy
     switch type {
         case .Health: 
             new_pickup.hp = 1
-            new_pickup.col = rl.GREEN
+            new_pickup.col = { 0, 228, 48, 150 }
         case .XP:
             new_pickup.xp = 1
-            new_pickup.col = rl.YELLOW
+            new_pickup.col = { 255, 203, 0, 150 }
     }
 
     new_pickup.vel = rl.Vector2Rotate({0, rand.float32_range(0, 100)}, rand.float32_range(0, math.TAU))

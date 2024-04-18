@@ -3,6 +3,7 @@ package game
 import "core:fmt"
 import "core:time"
 import "core:math"
+import "core:math/rand"
 import "core:math/linalg"
 import "core:prof/spall"
 import "core:strings"
@@ -21,13 +22,13 @@ Game :: struct {
     line_particles  : ParticleSystem,
     stars           : Stars,
 
-    time            : f64,
+    game_time            : f64,
     request_restart : bool
 }
 
 load_game :: proc(using game : ^Game) {
     request_restart = false
-    time = 0
+    game_time = 0
 
     init_player(&player)
     init_leveling(&leveling)
@@ -47,7 +48,6 @@ unload_game :: proc(using game : ^Game) {
 }
 
 tick_game :: proc(using game : ^Game) {
-    //spall.SCOPED_EVENT(&spall_ctx, &spall_buffer, "Tick")
     dt := rl.GetFrameTime();
 
     if !leveling.leveling_up {
@@ -55,11 +55,11 @@ tick_game :: proc(using game : ^Game) {
         tick_pickups(game, dt)
         tick_leveling(game)
         tick_player(&player, &audio, &pixel_particles, dt)
-        tick_player_weapon(&weapon, &player, &audio, &projectiles, &pixel_particles, time)
+        tick_player_weapon(&weapon, &player, &audio, &projectiles, &pixel_particles, game_time)
         if player.alive {
-            tick_waves(&waves, &enemies, dt, time)
+            tick_waves(&waves, &enemies, dt, game_time)
         }
-        tick_enemies(&enemies, &player, dt)
+        tick_enemies(&enemies, player, dt)
         tick_player_enemy_collision_(&player, &enemies, &line_particles, dt)
         tick_projectiles(&projectiles, dt)
         tick_projectiles_screen_collision(&projectiles)
@@ -68,7 +68,7 @@ tick_game :: proc(using game : ^Game) {
         tick_particles(&pixel_particles, dt)
         tick_particles(&line_particles, dt)    
 
-        time += f64(dt)
+        game_time += f64(dt)
     }
 
     tick_audio(&audio)
@@ -77,7 +77,6 @@ tick_game :: proc(using game : ^Game) {
 }
 
 draw_game :: proc(using game : ^Game) {
-    //spall.SCOPED_EVENT(&spall_ctx, &spall_buffer, "Draw")
     rl.BeginDrawing()
     defer rl.EndDrawing()
     
@@ -92,7 +91,7 @@ draw_game :: proc(using game : ^Game) {
     draw_particles_as_pixels(&pixel_particles)
     draw_particles_as_lines(&line_particles)
     draw_game_gui(game)
-    draw_waves_gui(&waves, time)
+    draw_waves_gui(&waves, game_time)
 
     if leveling.leveling_up {
         draw_level_up_gui(game)

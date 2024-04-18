@@ -18,7 +18,7 @@ init_cell_data :: proc(grid : ^HGrid($T), cell_size : f32){
     grid.cells     = make(map[int2][dynamic]T)
 }
 
-delete_cell_data :: proc(using grid : ^HGrid($T)) {
+delete_cell_data :: proc(using grid : HGrid($T)) {
     for cell_coord, &data in cells do delete(data)
     delete(cells)
 }
