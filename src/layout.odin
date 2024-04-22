@@ -129,8 +129,8 @@ v_subdivide_rect ::proc(rect : Rect, $N : int) -> [N]Rect where N > 0 {
     return rects
 }
 
-h_split_rect ::proc(rect : Rect, percent : f32 = 0.5, bias : f32 = 0) -> [2]Rect {
-    left_width := rect.width * percent - bias
+h_split_rect ::proc(rect : Rect, ratio : f32 = 0.5, bias : f32 = 0) -> [2]Rect {
+    left_width := rect.width * ratio - bias
     right_width := rect.width - left_width
     return [2]Rect {
         {rect.x, rect.y, left_width, rect.height},
@@ -138,8 +138,8 @@ h_split_rect ::proc(rect : Rect, percent : f32 = 0.5, bias : f32 = 0) -> [2]Rect
     }
 }
 
-v_split_rect ::proc(rect : Rect, percent : f32 = 0.5, bias : f32 = 0) -> [2]Rect {
-    top_height := rect.height * percent - bias
+v_split_rect ::proc(rect : Rect, ratio : f32 = 0.5, bias : f32 = 0) -> [2]Rect {
+    top_height := rect.height * ratio - bias
     bottom_height := rect.height - top_height
     return [2]Rect {
         {rect.x, rect.y, rect.width, top_height},
