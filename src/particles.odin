@@ -1,3 +1,6 @@
+//This code provides functionality for simulating a simple particle system.
+//
+
 package game
 
 import "core:fmt"
@@ -8,6 +11,7 @@ import rl "vendor:raylib"
 
 MAX_PARTICLES :: 1024
 
+// The state of a single particle
 Particle :: struct {
     tim : f32,          // time     (how long it's been alive)
     dur : f32,          // lifetime (duration)
@@ -21,35 +25,45 @@ Particle :: struct {
     adg : f32           // angular drag
 }
 
+// A pool of particles
 ParticleSystem :: struct {
     count     : int,
     particles : [MAX_PARTICLES]Particle
 }
 
+// Tick functions are called every frame by the game.
+// This steps a particle system simulation forward in time.
 tick_particles :: proc(using particle_system : ^ParticleSystem, dt: f32) {
+    // Loop over all the particles
     for i := 0; i < count; i += 1 {
+        // Get a copy of the current particle
         using particle := particles[i]
-        vel *= 1 / (1 + vdg * dt)
-        trq *= 1 / (1 + adg * dt)
-        pos += particle.vel * dt
-        rot += particle.trq * dt
-        tim += dt
+        vel *= 1 / (1 + vdg * dt) // Drag
+        trq *= 1 / (1 + adg * dt) // Angular drag
+        pos += particle.vel * dt  // Move particle along velocity
+        rot += particle.trq * dt  // Rotate particle by torque
+        tim += dt                 // Increment particle time
+        // Release the particle if it has lived longer than its duration
         if tim >= dur {
             release_particle(i, particle_system)
             i -= 1
         }
-        else {
+        else { // Otherwise write the current particle back to the array
             particles[i] = particle
         }
     }
 }
 
+// Draw functions are called at the end of each frame by the game
+// Draws a particle system as particles
 draw_particles_as_pixels :: proc(using particle_system : ^ParticleSystem) {
     for p in particles[0:count] {
         rl.DrawPixelV(p.pos, p.col)
     }
 }
 
+// Draw functions are called at the end of each frame by the game
+// Draws a particle system as lines
 draw_particles_as_lines :: proc(using particle_system : ^ParticleSystem) {
     rl.rlSetLineWidth(3)
     for p in particles[0:count] {
@@ -60,17 +74,20 @@ draw_particles_as_lines :: proc(using particle_system : ^ParticleSystem) {
     }
 }
 
+// Adds a new particle to a particle system's pool
 add_particle :: proc(newParticle : Particle, using particle_system : ^ParticleSystem) {
     if count == MAX_PARTICLES do return
     particles[count] = newParticle
     count += 1
 }
 
+// Releases a particle from a particle system by its index
 release_particle :: proc(index : int, using particle_system : ^ParticleSystem) {
     particles[index] = particles[count - 1]
     count -= 1
 }
 
+// Utility function to spawn 3 particles at the vertices of a triangle.
 spawn_particles_triangle_segments :: proc(
     particle_system     : ^ParticleSystem, 
     triangle            : [3]rl.Vector2,
@@ -120,6 +137,7 @@ spawn_particles_triangle_segments :: proc(
     }
 }
 
+// Utility function to spawn n particles in a burst
 spawn_particles_burst :: proc(
     particle_system : ^ParticleSystem, 
     center          : rl.Vector2, 
@@ -152,6 +170,7 @@ spawn_particles_burst :: proc(
     }
 }
 
+// Utility function to spawn n particles in a certain direction
 spawn_particles_direction :: proc(
     particle_system : ^ParticleSystem, 
     center          : rl.Vector2, 

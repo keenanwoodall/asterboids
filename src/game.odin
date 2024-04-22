@@ -1,3 +1,5 @@
+// This is the heart of the game.
+// It stores the entire state of the program and dictates the order in which various gameplay systems run at a high level
 package game
 
 import "core:fmt"
@@ -9,23 +11,26 @@ import "core:prof/spall"
 import "core:strings"
 import rl "vendor:raylib"
 
+// This is the entire state of the game
+// Each field is its own struct, and stores the state of some 
 Game :: struct {
-    player          : Player,
-    leveling        : Leveling,
-    weapon          : Weapon,
-    enemies         : Enemies,
-    waves           : Waves,
-    projectiles     : Projectiles,
-    pickups         : Pickups,
-    audio           : Audio,
-    pixel_particles : ParticleSystem,
-    line_particles  : ParticleSystem,
-    stars           : Stars,
+    player          : Player,           // Player position, velocity, health etc.
+    leveling        : Leveling,         // Player xp, level and other state related to leveling up.
+    weapon          : Weapon,           // Fire rate, spread, kick etc.
+    enemies         : Enemies,          // Pool of enemies, each with health, velocity etc.
+    waves           : Waves,            // Manages when waves of enemies are spawned, and how many.
+    projectiles     : Projectiles,      // Pool of projectiles fired by the player.
+    pickups         : Pickups,          // Pool of pickups dropped by enemies.
+    audio           : Audio,            // Loaded sounds/music available to be played.
+    pixel_particles : ParticleSystem,   // Pool of particles, which will be drawn to the screen as pixels.
+    line_particles  : ParticleSystem,   // Another pool of particles, which will be drawn to the screen as lines.
+    stars           : Stars,            // Stars and their colors. Drawn to the screen as pixels.
 
-    game_time            : f64,
-    request_restart : bool
+    game_time       : f64,              // The time used for gameplay.
+    request_restart : bool              // Anything can set this to true and the game will be restarted at the end of the current frame.
 }
 
+// Kicks off initialization of the various game systems (where needed, not all systems manage their own state)
 load_game :: proc(using game : ^Game) {
     request_restart = false
     game_time = 0
@@ -41,12 +46,14 @@ load_game :: proc(using game : ^Game) {
     load_audio(&audio)
 }
 
+// Releases resources used by the various game systems (where needed, not all systems manage their own state)
 unload_game :: proc(using game : ^Game) {
     unload_enemies(&enemies)
     unload_pickups(&pickups)
     unload_audio(&audio)
 }
 
+// Ticks the various game systems
 tick_game :: proc(using game : ^Game) {
     dt := rl.GetFrameTime();
 
@@ -76,6 +83,7 @@ tick_game :: proc(using game : ^Game) {
     request_restart = rl.IsKeyPressed(.R)
 }
 
+// Draws the various parts of the game
 draw_game :: proc(using game : ^Game) {
     rl.BeginDrawing()
     defer rl.EndDrawing()
@@ -98,7 +106,6 @@ draw_game :: proc(using game : ^Game) {
     }
 
     rl.DrawFPS(10, 10)
-    rl.DrawText(rl.TextFormat("Enemies: %i", enemies.count), 10, 30, 20, rl.WHITE)
 
     if !player.alive {
         label := strings.clone_to_cstring(

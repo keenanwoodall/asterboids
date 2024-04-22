@@ -127,7 +127,7 @@ get_player_rect :: proc(using player : ^Player) -> rl.Rectangle {
     return {rect_pos.x, rect_pos.y, siz, siz}
 }
 
-get_player_corners :: proc(using player : ^Player) -> [4]rl.Vector2 {
+get_player_corners :: proc(using player : Player) -> [4]rl.Vector2 {
     half_size := siz / 2
     return [4]rl.Vector2 {
         pos + {-half_size, -half_size}, // top left

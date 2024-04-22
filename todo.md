@@ -8,27 +8,26 @@
 - ~~enemy collision~~
 - debug gui
 - ~~smooth enemy turning~~
-- multithreading
+- ~~multithreading~~
 - ~~pickups~~
 - dash
 - dash trail
 - ~~sfx debounce~~
 - ~~enemy death vfx~~
 - enemy trail
-- fix thruster sfx popping
+- fix thruster sfx popping!!!!!
 - ~~sfx pitch variance~~
-- star field
+- ~~star field~~
 - blur trail
 - ~~player health~~
 - ~~game restart~~
 - start screen
 - death sfx
-- xp/hp sfx
-- xp/hp vfx
-- multi cluster spawning
+- ~~xp/hp sfx~~
+- ~~xp/hp vfx~~
+- ~~multi cluster spawning~~
 - heatseaking modifier
 - detect if mouse was down when level up gui is revealed to prevent accidental clicks
 
-- per-enemy archetype boid cohesion
-
-- explainer comments
+- ~~per-enemy archetype boid cohesion~~
+- ~~explainer comments~~

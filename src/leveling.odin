@@ -1,9 +1,14 @@
+// This code manages the player leveling state, level up choices and level up gui
+// Leveling up consists of applying a "modifier" to the game state.
+// A modifier is just a function that is passed the game state and can do whatever it wants to it.
+// Level up modifiers mostly modify the Player and PlayerWeapon
 package game
 
 import "core:fmt"
 import "core:math"
 import rl "vendor:raylib"
 
+// The Leveling struct stores the state of the player level and level-up choices
 Leveling :: struct {
     xp                  : int,
     lvl                 : int,
@@ -12,6 +17,8 @@ Leveling :: struct {
     level_up_choice_b   : ModifierPair,
 }
 
+// Init functions are called when the game first starts.
+// Here we can assign default values and initialize data.
 init_leveling :: proc(using leveling : ^Leveling) {
     xp = 0
     lvl = 1
@@ -20,8 +27,12 @@ init_leveling :: proc(using leveling : ^Leveling) {
     level_up_choice_b = {}
 }
 
+// Tick functions are called every frame by the game
 tick_leveling :: proc(using game : ^Game) {
+    // Check if our current xp is enough to level up
     if leveling.xp >= get_target_xp(leveling.lvl) {
+        // If so, level up, reset xp, generate random level up choices
+        // and indicate we want to show level up gui if valid level up choices are found.
         leveling.lvl += 1
         leveling.xp = 0
         choice_a, a_ok := random_modifier_pair(game)
@@ -38,6 +49,8 @@ tick_leveling :: proc(using game : ^Game) {
     }
 }
 
+// Draw functions are called at the end of each frame by the game
+// However this function will only be called by the game is leveling.leveling_up is true
 draw_level_up_gui :: proc(using game : ^Game) {
     PANEL_WIDTH     :: 400
     PANEL_HEIGHT    :: 200
@@ -111,13 +124,9 @@ draw_level_up_gui :: proc(using game : ^Game) {
 
     choice_a_rect := choice_rects[0]
     choice_b_rect := choice_rects[1]
-
-    // rl.DrawRectangleRec(choice_left_rects[0], {0, 255, 0, 50})
-    // rl.DrawRectangleRec(choice_right_rects[0], {0, 255, 0, 50})
-    // rl.DrawRectangleRec(choice_left_rects[1], {255, 0, 0, 50})
-    // rl.DrawRectangleRec(choice_right_rects[1], {255, 0, 0, 50})
 }
 
+// Calculates the required xp for a given level
 get_target_xp :: proc(level : int) -> int {
     return int(math.pow(f32(level * 6), 1.1))
 }

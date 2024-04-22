@@ -1,3 +1,5 @@
+// This code handles loading game sounds and music.
+// It also provides some utility pitch variance and debouncing.
 package game
 
 import "core:fmt"
@@ -5,10 +7,13 @@ import "core:time"
 import "core:math/rand"
 import rl "vendor:raylib"
 
+// A simple struct to record the last time a sound was played.
+// Used for debounce (preventing sounds from being played too quickly in succession)
 SoundHistory :: struct {
     last_play_time : time.Time
 }
 
+// The Audio struct stores all loaded sounds/music, as well as when each sound was last played.
 Audio :: struct {
     music           : rl.Music,
     laser           : rl.Sound,
@@ -21,11 +26,14 @@ Audio :: struct {
     collect_hp      : rl.Sound,
     level_up        : rl.Sound,
     level_up_conf   : rl.Sound,
-    thrust          : rl.Music,
+    thrust          : rl.Music, // Thrust is loaded as music so that it loops when played.
+                                // If there's a way to loop sounds this is unnecessary.
 
     sound_history   : map[rl.Sound]SoundHistory
 }
 
+// Called when the game is loaded.
+// Loads music and soud files and performs minor mixing.
 load_audio :: proc(using audio : ^Audio) {
     sound_history   = make(map[rl.Sound]SoundHistory)
 
@@ -62,6 +70,7 @@ load_audio :: proc(using audio : ^Audio) {
     rl.PlayMusicStream(thrust)
 }
 
+// Called when the game is unloaded. Unloads sound and music from memory.
 unload_audio :: proc(using audio : ^Audio) {
     delete(sound_history)
 
@@ -79,6 +88,8 @@ unload_audio :: proc(using audio : ^Audio) {
     rl.UnloadSound(level_up_conf)
 }
 
+// Tick functions are called every frame by the game
+// Ticks the game music. Music streams must be updated each frame.
 tick_audio :: proc(using audio : ^Audio) {
     rl.UpdateMusicStream(music)
     rl.UpdateMusicStream(thrust)
@@ -91,18 +102,25 @@ tick_audio :: proc(using audio : ^Audio) {
     }
 }
 
+// Utility function to play a sound. Sound will not play if it was last played within the debounce time.
 try_play_sound :: proc(using audio : ^Audio, sound : rl.Sound, debounce := 0.1, pitch_variance : f32 = 0.2) {
+    // Get the current time and check if the sound has been played before.
     now             := time.now()
     history, exists := sound_history[sound]
-    if exists {
-        if time.duration_seconds(time.since(history.last_play_time)) < debounce {
-            return
-        }
+    // If the sound has been played before, return early if it was played within the debounce time.
+    if exists && time.duration_seconds(time.since(history.last_play_time)) < debounce {
+        return
     }
 
+    // We can play the sound, so update the sound history to store the current time
     sound_history[sound] = { last_play_time = now }
 
-    if !rl.IsSoundPlaying(sound) do rl.SetSoundPitch(sound, 1 + rand.float32_range(-pitch_variance, pitch_variance))
+    // If the sound isn't currently playing, apply pitch variation.
+    // This code was written before I know about sound aliases. 
+    // Because there are not aliases, pitch should not be changed while a sound is playing for risk of popping.
+    if !rl.IsSoundPlaying(sound) {
+        rl.SetSoundPitch(sound, 1 + rand.float32_range(-pitch_variance, pitch_variance))
+    }
 
     rl.PlaySound(sound)
 }

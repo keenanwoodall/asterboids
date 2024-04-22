@@ -2,6 +2,8 @@ package game
 
 import rl "vendor:raylib"
 
+// Draw functions are called at the end of each frame by the game.
+// This function draws the player's health and xp bar
 draw_game_gui :: proc(using game : ^Game) {
     health_bar_width    := min(player.max_hth * 2, f32(rl.GetScreenWidth() - 30))
     health_bar_x        := i32((f32(rl.GetScreenWidth()) - health_bar_width) / 2)

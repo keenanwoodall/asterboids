@@ -1,3 +1,5 @@
+// This code detects and handles collision between the player and enemies
+
 package game
 
 import "core:fmt"
@@ -7,19 +9,32 @@ import rl "vendor:raylib"
 
 ENEMY_DPS :: 300
 
+// Tick functions are called every frame by the game.
+// This checks whether the player is overlapping any enemies, and deals damage to the player if so.
 tick_player_enemy_collision_:: proc(using player : ^Player, enemies : ^Enemies, ps : ^ParticleSystem, dt : f32) {
     if !alive do return
 
+    // We are going to use the enemies hgrid to minimize the number of necessary enemy collision checks.
+    // Get the coordinate of the enemy cell the player is currently inside.
     player_cell_coord       := get_cell_coord(enemies.grid, pos)
+    // Then get the indices of the enemies which are in the same cell as the player.
     enemy_indices, exists   := get_cell_data(enemies.grid, player_cell_coord)
+    // If there isn't a cell at the player's position, there aren't any enemies nearby and we can return.
     if !exists do return
+
+    // Iterate over the enemies in the same cell as the player and apply damage for each collision.
     for enemy_idx in enemy_indices {
         using enemy := &enemies.instances[enemy_idx]
-        if hit, point := check_player_enemy_collision(player, enemy); hit {
+        if hit, point := check_player_enemy_collision(player^, enemy^); hit {
             hth -= dt * ENEMY_DPS
         }
     }
 
+    // Note: Checking the enemies in the same cell as the player is not quite thorough
+    // because the player could be overlapping multiple cells.
+    // In practice, this has been fine tho
+
+    // If the players health is 0, indicate they are no longer alive and spawn some death particles.
     if hth <= 0 {
         alive = false
         hth = 0
@@ -28,8 +43,13 @@ tick_player_enemy_collision_:: proc(using player : ^Player, enemies : ^Enemies, 
     }
 }
 
-check_player_enemy_collision :: proc(player : ^Player, enemy : ^Enemy) -> (hit : bool, point : rl.Vector2) {
-    enemy_corners   := get_enemy_corners(enemy^)
+// Checks collision between a player and an enemy.
+// The player is a square and the enemies are triangles, so we can simply do line-line intersection tests for each line in the player and enemy.
+check_player_enemy_collision :: proc(player : Player, enemy : Enemy) -> (hit : bool, point : rl.Vector2) {
+    // Note: If the difference in size between a player and enemy is large enough,
+    // one could be *inside* the other without collision being detected.
+    // In practice, this is not an issue.
+    enemy_corners   := get_enemy_corners(enemy)
     player_corners  := get_player_corners(player)
     
     for pi in 0..<len(player_corners) {
