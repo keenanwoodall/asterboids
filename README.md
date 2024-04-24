@@ -1,5 +1,6 @@
 # Asterboids
-A very simple space-shooter with rogue-like elements. Loosely inspired by the classic arcade game, Asteroids. The game was a week(ish) long project, with the goal of learning the [Odin](https://odin-lang.org/) language and data-oriented-programming.
+A very simple space-shooter with rogue-like elements. Loosely inspired by the classic arcade game, Asteroids. The game was meant to be a week-long project, with the goal of learning the [Odin](https://odin-lang.org/) language and data-oriented-programming.
+I ended up spending a bit more time on it because I was learning a lot and having so much fun!
 
 ## Post-Mortem
 
