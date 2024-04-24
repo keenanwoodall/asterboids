@@ -1,24 +1,34 @@
+// This code handles player movement, audio and rendering.
+
 package game
 
+import "core:fmt"
 import "core:math"
 import "core:time"
 import "core:math/linalg"
 import rl "vendor:raylib"
 
-PLAYER_SIZE                 :: 20
-PLAYER_SPEED                :: 500
-PLAYER_ACCELERATION         :: 1.5
+PLAYER_SIZE                 :: 12
+PLAYER_TURN_SPEED           :: 50
+PLAYER_TURN_DRAG            :: 5
+PLAYER_ACCELERATION         :: 350
+PLAYER_BRAKING_ACCELERATION :: 3
 PLAYER_THRUST_EMIT_DELAY    :: 0.01
 PLAYER_THRUST_VOLUME_ATTACK :: 10
+PLAYER_MAX_SPEED            :: 400
 
+// I have no idea compelled me to use 3-character abbreviations, but I can't rename them easily with OLS :(
 Player :: struct {
-    max_hth : f32,
-    hth     : f32,
-    pos     : rl.Vector2,
-    vel     : rl.Vector2,
-    spd     : f32,
-    acc     : f32,
-    siz     : f32,
+    max_hth : f32,          // Max health
+    hth     : f32,          // Current health
+    rot     : f32,          // Rotation (radians)
+    pos     : rl.Vector2,   // Position
+    vel     : rl.Vector2,   // Velocity
+    acc     : f32,          // Acceleration
+    trq     : f32,          // Turn speed
+    avel    : f32,          // Angular velocity
+    adrg    : f32,          // Angular drag
+    siz     : f32,          // Size
     alive   : bool,
     thruster_volume : f32,
     last_thruster_emit_tick : time.Tick,
@@ -30,11 +40,15 @@ init_player :: proc(using player : ^Player) {
 
     max_hth = 100
     hth = 100
+    rot = 0
     alive = true
-    pos = { half_width, half_height }
+    pos = { half_width, half_height + 50 }
+    vel = { 0, 0 }
+    avel = 0
     siz = PLAYER_SIZE
-    spd = PLAYER_SPEED
     acc = PLAYER_ACCELERATION
+    trq = PLAYER_TURN_SPEED
+    adrg = PLAYER_TURN_DRAG
     thruster_volume = 0
 }
 
@@ -49,34 +63,23 @@ tick_player :: proc(using player : ^Player, audio : ^Audio, ps : ^ParticleSystem
 
     // Movement
     if alive {
-        move_left   := rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A);
-        move_right  := rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D);
-        move_up     := rl.IsKeyDown(.UP) || rl.IsKeyDown(.W);
-        move_down   := rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S);
+        turn_left   := rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A);
+        turn_right  := rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D);
+        thrust      := rl.IsKeyDown(.UP) || rl.IsKeyDown(.W);
 
-        if move_left {
-            dir := rl.Vector2{-spd, 0}
-            vel = linalg.lerp(vel, dir, 1 - math.exp(-dt * acc))
-            thruster_target_volume += 1
-            if can_emit do emit_thruster_particles(player, ps, -dir)
+        if turn_left {
+            avel -= trq * dt
         }
-        if move_right {
-            dir := rl.Vector2{+spd, 0}
-            vel = linalg.lerp(vel, dir, 1 - math.exp(-dt * acc))
-            thruster_target_volume += 1
-            if can_emit do emit_thruster_particles(player, ps, -dir)
+        if turn_right {
+            avel += trq * dt
         }
-        if move_up {
-            dir := rl.Vector2{0, -spd}
-            vel = linalg.lerp(vel, dir, 1 - math.exp(-dt * acc))
+        if thrust {
+            dir := get_player_dir(player^)
+            brake_factor := 1 - (linalg.dot(player.vel / (linalg.length(player.vel) + 0.001), dir) / 2 + 0.5)// 1 = braking, 0 = accelerating
+            acceleration := acc * (1 + brake_factor * PLAYER_BRAKING_ACCELERATION) 
+            vel += dir * acceleration * dt
             thruster_target_volume += 1
-            if can_emit do emit_thruster_particles(player, ps, -dir)
-        }
-        if move_down {
-            dir := rl.Vector2{0, +spd}
-            vel = linalg.lerp(vel, dir, 1 - math.exp(-dt * acc))
-            thruster_target_volume += 1
-            if can_emit do emit_thruster_particles(player, ps, -dir)
+            if can_emit do emit_thruster_particles(player, ps, -dir, acceleration)
         }
     }
 
@@ -85,67 +88,73 @@ tick_player :: proc(using player : ^Player, audio : ^Audio, ps : ^ParticleSystem
 
     rl.SetMusicVolume(audio.thrust, thruster_volume)
 
-    // Edge collision
-    {
-        // Horizontal
-        if pos.x - siz < 0 {
-            pos.x = siz
-            vel.x *= -1;
-        }
-        if pos.x + siz > width {
-            pos.x = width - siz
-            vel.x *= -1;
-        }
-        // Vertical
-        if pos.y - siz < 0 {
-            pos.y = siz
-            vel.y *= -1;
-        }
-        if pos.y + siz > height {
-            pos.y = height - siz
-            vel.y *= -1;
-        }
+    // Horizontal Edge collision
+    if pos.x - siz < 0 {
+        pos.x = siz
+        vel.x *= -1;
+    }
+    if pos.x + siz > width {
+        pos.x = width - siz
+        vel.x *= -1;
+    }
+    // Vertical Edge collision
+    if pos.y - siz < 0 {
+        pos.y = siz
+        vel.y *= -1;
+    }
+    if pos.y + siz > height {
+        pos.y = height - siz
+        vel.y *= -1;
     }
 
+    // Angular drag
+    avel *= 1 / (1 + adrg * dt)
+    vel = limit_length(vel, PLAYER_MAX_SPEED)
+
+    // Rotate and move player along velocity
+    rot += avel * dt
     pos += vel * dt
 }
 
 draw_player :: proc(using player : ^Player) {
     if !alive do return
     radius := siz / 2
-    thruster_size := rl.Vector2{5, 5}
-    rl.DrawRectangleV(pos + {+radius, 0} - thruster_size / 2, thruster_size, rl.GRAY)
-    rl.DrawRectangleV(pos + {-radius, 0} - thruster_size / 2, thruster_size, rl.GRAY)
-    rl.DrawRectangleV(pos + {0, +radius} - thruster_size / 2, thruster_size, rl.GRAY)
-    rl.DrawRectangleV(pos + {0, -radius} - thruster_size / 2, thruster_size, rl.GRAY)
-
-    rl.DrawCircleV(pos, radius, rl.RAYWHITE)
+    corners := get_player_corners(player^)
+    rl.DrawTriangle(corners[0], corners[2], corners[1], rl.RAYWHITE)
 }
 
-get_player_rect :: proc(using player : ^Player) -> rl.Rectangle {
-    rect_pos := pos - siz/2
-    return {rect_pos.x, rect_pos.y, siz, siz}
+// The direction the player is facing
+get_player_dir :: proc(using player : Player) -> rl.Vector2 {
+    return { math.cos(rot), math.sin(rot) }
 }
 
-get_player_corners :: proc(using player : Player) -> [4]rl.Vector2 {
-    half_size := siz / 2
-    return [4]rl.Vector2 {
-        pos + {-half_size, -half_size}, // top left
-        pos + {+half_size, -half_size}, // top right
-        pos + {+half_size, +half_size}, // bottom right
-        pos + {-half_size, +half_size}, // bottom left
+// Gets the base of the player. This is where the thruster particles emit from.
+get_player_base :: proc(using player : Player) -> rl.Vector2 {
+    corners := get_player_corners(player)
+    return linalg.lerp(corners[0], corners[1], 0.5)
+}
+
+get_player_corners :: proc(using player : Player) -> [3]rl.Vector2 {
+    // Start by defining the offsets of each vertex
+    corners := [3]rl.Vector2 { {-0.75, -1}, {+0.75, -1}, {0, +1.5} }
+    // Iterate over each vertex and transform them based on the player's position, rotation and size
+    for i in 0..<3 {
+        corners[i] = rl.Vector2Rotate(corners[i], rot - math.PI / 2)
+        corners[i] *= siz
+        corners[i] += pos
     }
+    return corners
 }
 
 @(private) 
-emit_thruster_particles :: proc(using player : ^Player, ps : ^ParticleSystem, dir : rl.Vector2) {
+emit_thruster_particles :: proc(using player : ^Player, ps : ^ParticleSystem, dir : rl.Vector2, acceleration : f32) {
     player.last_thruster_emit_tick = time.tick_now()
     norm_dir := linalg.normalize(dir)
     spawn_particles_direction(
         particle_system = ps, 
-        center          = pos,
+        center          = get_player_base(player^),
         direction       = norm_dir, 
-        count           = int(1 * acc), 
+        count           = int(0.005 * acceleration), 
         min_speed       = 200,
         max_speed       = 1000,
         min_lifetime    = 0.1,

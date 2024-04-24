@@ -252,9 +252,9 @@ draw_enemies_grid :: proc(using enemies : ^Enemies) {
 
 // Enemies are triangles. This function calculates the vertices of an enemy triangle.
 // Corners is probably the wrong term because enemies are triangles.
-get_enemy_corners :: proc(using enemy : Enemy) -> [3]rl.Vector2 {
-    // Start by defining the offsets of each vertex relative
-    corners := [3]rl.Vector2 { {-1, -1}, {+1, -1}, {0, +1.5} }
+get_enemy_corners :: proc(using enemy : Enemy, padding : f32 = 0) -> [3]rl.Vector2 {
+    // Start by defining the offsets of each vertex
+    corners := [3]rl.Vector2 { {-1, -1}, {+1, -1}, {0, +1.5} } * (1 + padding)
     // Iterate over each vertex and transform them based on the enemy's position, rotation and size
     for i in 0..<3 {
         corners[i] = rl.Vector2Rotate(corners[i], rot)
@@ -266,7 +266,7 @@ get_enemy_corners :: proc(using enemy : Enemy) -> [3]rl.Vector2 {
 
 // Returns true if the provided line intersects the segments of an enemy. If true, also returns the intersection point/normal
 check_enemy_line_collision :: proc(line_start, line_end : rl.Vector2, enemy : Enemy) -> (hit : bool, point, normal : rl.Vector2) {
-    corners := get_enemy_corners(enemy)
+    corners := get_enemy_corners(enemy, padding = 1)
 
     // Iterate over each segment
     for i := 0; i < len(corners); i += 1 {
@@ -447,13 +447,11 @@ separation :: proc (index : int, enemies : []Enemy, grid : HGrid(int)) -> rl.Vec
 }
 
 // Utility function to set the length of a vector
-@(private="file")
 set_length :: proc(v : rl.Vector2, length : f32) -> rl.Vector2 {
     return linalg.normalize(v) * length
 }
 
 // Utility function to limit the length of a vector
-@(private="file")
 limit_length :: proc(v : rl.Vector2, limit : f32) -> rl.Vector2 {
     len := linalg.length(v)
     if len == 0 || len <= limit {
@@ -465,7 +463,6 @@ limit_length :: proc(v : rl.Vector2, limit : f32) -> rl.Vector2 {
 }
 
 // Utility function to safely normalize a vector
-@(private="file")
 safe_normalize :: proc(v : rl.Vector2) -> (rl.Vector2, bool) {
     length := linalg.length(v)
     if length > 0 do return v / length, true

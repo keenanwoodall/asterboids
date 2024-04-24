@@ -67,7 +67,7 @@ tick_game :: proc(using game : ^Game) {
             tick_waves(&waves, &enemies, dt, game_time)
         }
         tick_enemies(&enemies, player, dt)
-        tick_player_enemy_collision_(&player, &enemies, &line_particles, dt)
+        tick_player_enemy_collision(&player, &enemies, &line_particles, dt)
         tick_projectiles(&projectiles, dt)
         tick_projectiles_screen_collision(&projectiles)
         tick_projectiles_enemy_collision(&projectiles, &enemies, &pixel_particles, &audio)
@@ -95,7 +95,7 @@ draw_game :: proc(using game : ^Game) {
     draw_enemies(&enemies)
     draw_projectiles(&projectiles)
     draw_pickups(&pickups)
-    draw_player_weapon(&player, &weapon)
+    draw_player_weapon(player, weapon)
     draw_particles_as_pixels(&pixel_particles)
     draw_particles_as_lines(&line_particles)
     draw_game_gui(game)

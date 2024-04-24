@@ -18,7 +18,7 @@ Projectile :: struct {
 // The projectiles struyct stores the state of all projectiles in a pool.
 Projectiles :: struct {
     count     : int,
-    instances : [MAX_PROJECTILES]Projectile
+    instances : [MAX_PROJECTILES]Projectile,
 }
 
 // Init functions are called when the game first starts.

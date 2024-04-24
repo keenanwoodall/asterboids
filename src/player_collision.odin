@@ -11,7 +11,7 @@ ENEMY_DPS :: 300
 
 // Tick functions are called every frame by the game.
 // This checks whether the player is overlapping any enemies, and deals damage to the player if so.
-tick_player_enemy_collision_:: proc(using player : ^Player, enemies : ^Enemies, ps : ^ParticleSystem, dt : f32) {
+tick_player_enemy_collision :: proc(using player : ^Player, enemies : ^Enemies, ps : ^ParticleSystem, dt : f32) {
     if !alive do return
 
     // We are going to use the enemies hgrid to minimize the number of necessary enemy collision checks.
