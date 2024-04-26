@@ -17,6 +17,8 @@ PLAYER_THRUST_EMIT_DELAY    :: 0.01
 PLAYER_THRUST_VOLUME_ATTACK :: 10
 PLAYER_MAX_SPEED            :: 400
 
+EmitThrustParticleAction :: proc(game : ^Game)
+
 // I have no idea compelled me to use 3-character abbreviations, but I can't rename them easily with OLS :(
 Player :: struct {
     max_hth : f32,          // Max health
@@ -30,7 +32,10 @@ Player :: struct {
     adrg    : f32,          // Angular drag
     siz     : f32,          // Size
     alive   : bool,
-    thruster_volume : f32,
+
+    on_emit_thruster_particles : ActionStack(bool, Game),
+
+    thruster_volume         : f32,
     last_thruster_emit_tick : time.Tick,
 }
 
@@ -50,70 +55,85 @@ init_player :: proc(using player : ^Player) {
     trq = PLAYER_TURN_SPEED
     adrg = PLAYER_TURN_DRAG
     thruster_volume = 0
+
+    init_action_stack(&on_emit_thruster_particles)
 }
 
-tick_player :: proc(using player : ^Player, audio : ^Audio, ps : ^ParticleSystem, dt : f32) {
+unload_player :: proc(using player : ^Player) {
+    unload_action_stack(&on_emit_thruster_particles)
+}
+
+tick_player :: proc(using game : ^Game, dt : f32) {
     width   := f32(rl.rlGetFramebufferWidth())
     height  := f32(rl.rlGetFramebufferHeight())
 
-    thruster_emit_time_elapsed := time.duration_seconds(time.tick_since(last_thruster_emit_tick))
+    thruster_emit_time_elapsed := time.duration_seconds(time.tick_since(player.last_thruster_emit_tick))
     can_emit := thruster_emit_time_elapsed >= PLAYER_THRUST_EMIT_DELAY
         
     thruster_target_volume : f32 = 0
 
     // Movement
-    if alive {
+    if player.alive {
         turn_left   := rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A);
         turn_right  := rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D);
         thrust      := rl.IsKeyDown(.UP) || rl.IsKeyDown(.W);
 
         if turn_left {
-            avel -= trq * dt
+            player.avel -= player.trq * dt
         }
         if turn_right {
-            avel += trq * dt
+            player.avel += player.trq * dt
         }
         if thrust {
-            dir := get_player_dir(player^)
-            brake_factor := 1 - (linalg.dot(player.vel / (linalg.length(player.vel) + 0.001), dir) / 2 + 0.5)// 1 = braking, 0 = accelerating
-            acceleration := acc * (1 + brake_factor * PLAYER_BRAKING_ACCELERATION) 
-            vel += dir * acceleration * dt
+            dir := get_player_dir(player)
+
+            // To help the controls feel more responsive, we'll calculate how much the player is braking be comparing the direction they're moving to
+            // the direction they're thrusting. We can use this to apply more acceleration when braking
+            brake_factor := 1 - (linalg.dot(player.vel / (linalg.length(player.vel) + 0.001), dir) / 2 + 0.5) // 1 = braking, 0 = accelerating
+            acceleration := player.acc * (1 + brake_factor * PLAYER_BRAKING_ACCELERATION) 
+
+            player.vel += dir * acceleration * dt
+
             thruster_target_volume += 1
-            if can_emit do emit_thruster_particles(player, ps, -dir, acceleration)
+            if can_emit {
+                should_emit := true
+                execute_action_stack(player.on_emit_thruster_particles, &should_emit, game)
+                if should_emit do emit_thruster_particles(&player, &pixel_particles, -dir, acceleration)
+            }
         }
     }
 
     thruster_target_volume = math.saturate(thruster_target_volume) * 0.2
-    thruster_volume = math.lerp(thruster_volume, thruster_target_volume, 1 - math.exp(-dt * PLAYER_THRUST_VOLUME_ATTACK))
+    player.thruster_volume = math.lerp(player.thruster_volume, thruster_target_volume, 1 - math.exp(-dt * PLAYER_THRUST_VOLUME_ATTACK))
 
-    rl.SetMusicVolume(audio.thrust, thruster_volume)
+    rl.SetMusicVolume(audio.thrust, player.thruster_volume)
 
     // Horizontal Edge collision
-    if pos.x - siz < 0 {
-        pos.x = siz
-        vel.x *= -1;
+    if player.pos.x - player.siz < 0 {
+        player.pos.x = player.siz
+        player.vel.x *= -1;
     }
-    if pos.x + siz > width {
-        pos.x = width - siz
-        vel.x *= -1;
+    if player.pos.x + player.siz > width {
+        player.pos.x = width - player.siz
+        player.vel.x *= -1;
     }
     // Vertical Edge collision
-    if pos.y - siz < 0 {
-        pos.y = siz
-        vel.y *= -1;
+    if player.pos.y - player.siz < 0 {
+        player.pos.y = player.siz
+        player.vel.y *= -1;
     }
-    if pos.y + siz > height {
-        pos.y = height - siz
-        vel.y *= -1;
+    if player.pos.y + player.siz > height {
+        player.pos.y = height - player.siz
+        player.vel.y *= -1;
     }
 
     // Angular drag
-    avel *= 1 / (1 + adrg * dt)
-    vel = limit_length(vel, PLAYER_MAX_SPEED)
+    player.avel *= 1 / (1 + player.adrg * dt)
+    player.vel = limit_length(player.vel, PLAYER_MAX_SPEED)
 
     // Rotate and move player along velocity
-    rot += avel * dt
-    pos += vel * dt
+    player.rot += player.avel * dt
+    player.pos += player.vel * dt
 }
 
 draw_player :: proc(using player : ^Player) {
@@ -163,4 +183,35 @@ emit_thruster_particles :: proc(using player : ^Player, ps : ^ParticleSystem, di
         angle           = .2,
         drag            = 5,
     )
+}
+
+// Returns the distance to the closest enemy in the neighboring cells, if any
+near_enemy :: proc(player : Player, enemies : Enemies) -> (near : bool, dist : f32) {
+    player_cell := get_cell_coord(enemies.grid, player.pos)
+
+    @(static) CellOffsets := [?][2]int {
+        {0, 0}, // Check center cell first
+        {-1, +1}, {+0, +1}, {+1, +1},
+        {-1, +0},           {+1, +0},
+        {-1, -1}, {+0, -1}, {+1, -1},
+    }
+
+    closest_sqr_dist : f32 = math.F32_MAX
+
+    for cell_offset, idx in CellOffsets {
+        enemy_indices, exists := get_cell_data(enemies.grid, player_cell + cell_offset)
+        if !exists do continue
+
+        for enemy_idx in enemy_indices {
+            enemy := enemies.instances[enemy_idx]
+            sqr_dist := linalg.length2(enemy.pos - player.pos)
+            closest_sqr_dist = min(sqr_dist, closest_sqr_dist)
+        }
+
+        // If we found an enemy in the center cell we can break because none of the neighboring cells
+        // will have a closer enemy
+        if idx == 0 && closest_sqr_dist < math.F32_MAX do break
+    }
+
+    return closest_sqr_dist < math.F32_MAX, math.sqrt(closest_sqr_dist)
 }

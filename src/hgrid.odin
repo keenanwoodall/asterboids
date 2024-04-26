@@ -15,6 +15,7 @@ package game
 
 import "core:fmt"
 import "core:math"
+import "core:math/linalg"
 import "core:mem"
 
 int2    :: [2]int
@@ -30,14 +31,16 @@ float2  :: [2]f32
 //      cell_data_under_mouse, exists   := get_cell_data(grid, cell_coord)
 HGrid :: struct($T : typeid) {
     cells           : map[int2][dynamic]T,
-    pos_ptr_offset  : u16,
     cell_size       : f32,
+    min, max        : [2]int,
 }
 
 // Allocates data used by the grid and initializes the cell size
 init_cell_data :: proc(grid : ^HGrid($T), cell_size : f32){
     grid.cell_size = cell_size
     grid.cells     = make(map[int2][dynamic]T)
+    grid.min       = { math.max(int), math.max(int) }
+    grid.max       = { math.min(int), math.min(int) }
 }
 
 // Frees data allocated by the grid
@@ -48,6 +51,9 @@ delete_cell_data :: proc(using grid : HGrid($T)) {
 
 // Clears all data stored in the grid cells
 clear_cell_data :: proc(using grid : ^HGrid($T)) {
+    grid.min       = { math.max(int), math.max(int) }
+    grid.max       = { math.min(int), math.min(int) }
+    
     for cell_coord, &data in cells {
         if len(data) == 0 {
             delete(data)
@@ -57,9 +63,14 @@ clear_cell_data :: proc(using grid : ^HGrid($T)) {
     }
 }
 
-// Gets the coordinates of the grid cell that a position is within
+// Gets the column/row of the grid cell that a position is within
 get_cell_coord :: #force_inline proc(using grid : HGrid($T), pos : float2) -> int2 {
     return {int(pos.x / cell_size), int(pos.y / cell_size)}
+}
+
+// Gets the top left corner of the grid cell that a position is within
+get_cell_pos :: #force_inline proc(using grid : HGrid($T), pos : float2) -> float2 {
+    return { math.floor(pos.x / cell_size), math.floor(pos.y / cell_size) }
 }
 
 // Inserts data into a cell
@@ -76,10 +87,14 @@ insert_cell_data :: proc(using grid : ^HGrid($T), cell_coord : int2, data : T, a
     // Add the new data to the list of data stored in the cell
     append(&values, data)
     cells[cell_coord] = values
+    
+    // Update the min/max bounds of the grid
+    grid.min = linalg.min(grid.min, cell_coord)
+    grid.max = linalg.min(grid.max, cell_coord)
 }
 
 // Returns the data stored in a grid cell
-get_cell_data :: #force_inline proc(using grid : HGrid($T), cell_coord : int2) -> (data : []T, ok : bool) {
-    result, success := cells[cell_coord]
-    return result[:], success
+get_cell_data :: #force_inline proc(using grid : HGrid($T), cell_coord : int2) -> (data : []T, exists : bool) {
+    results, any := cells[cell_coord]
+    return results[:], any
 }

@@ -16,11 +16,11 @@ ENEMY_WAVE_DURATION :: 10   // How long should the delay between waves be?
 // The Waves struct stores the state of enemy waves.
 // The number of waves which have been spawned, how long the current one has lasted etc.
 Waves :: struct {
-    no_enemies_timer : f32, // Counts how long there have been 0 enemies. Used to spawn a new wave early if the previous was finished quickly.
-    last_wave_time   : f64, // At what time the last wave started.
-    wave_duration    : f64, // Delay until the next wave starts. This used to decrement over time, but that functionality has been removed.
-    wave_idx         : int, // Current wave index ie: how many waves have been spawned.
-    cluster_rand       : rand.Rand, // Waves of enemies are broken up into smaller groups.
+    no_enemies_timer : f32,         // Counts how long there have been 0 enemies. Used to spawn a new wave early if the previous was finished quickly.
+    last_wave_time   : f64,         // At what time the last wave started.
+    wave_duration    : f64,         // Delay until the next wave starts. This used to decrement over time, but that functionality has been removed.
+    wave_idx         : int,         // Current wave index ie: how many waves have been spawned.
+    cluster_rand     : rand.Rand,   // Waves of enemies are broken up into smaller groups.
                                     // This is a custom random number generator which is used to get random numbers unique to each cluster
 }
 
@@ -93,7 +93,7 @@ spawn_enemies :: proc(
     cluster_idx     : int,
     waves           : ^Waves, 
     enemies         : ^Enemies, 
-    spawner_proc    : proc(rng: ^rand.Rand, cluster: int)->rl.Vector2) {
+    spawner_proc    : proc(rng: ^rand.Rand, wave, cluster: int)->rl.Vector2) {
     
     // This is probably a silly way to go about this, but to author the three enemy variants
     // I'm using this struct to store the relevant parameters.
@@ -131,7 +131,7 @@ spawn_enemies :: proc(
         // Create a new enemy, using the spawner_proc to calculate its position and the archetype
         // to configure the rest of its parameters.
         new_enemy : Enemy = {
-            pos     = spawner_proc(&waves.cluster_rand, cluster_idx),
+            pos     = spawner_proc(&waves.cluster_rand, waves.wave_idx, cluster_idx),
             vel     = rl.Vector2Rotate({0, 1}, rand.float32_range(0, linalg.TAU)) * ENEMY_SPEED, // A little random start velocity just cuz
             siz     = archetype.size,
             hp      = archetype.hp,
@@ -170,15 +170,15 @@ random_screen_border_position :: proc(padding : f32 = 0, r : ^rand.Rand = nil) -
 }
 
 // Various spawner functions which can be passed to the spawn_enemies function to determine how enemies are positioned.
-OffscreenSpawner        :: proc(rng: ^rand.Rand, cluster: int = 0) -> rl.Vector2 { return random_screen_border_position(ENEMY_SPAWN_PADDING * rand.float32_range(1, 2)) }
-OnScreenSpawner         :: proc(rng: ^rand.Rand, cluster: int = 0) -> rl.Vector2 { return random_screen_position() }
+OffscreenSpawner        :: proc(rng: ^rand.Rand, wave: int = 0, cluster: int = 0) -> rl.Vector2 { return random_screen_border_position(ENEMY_SPAWN_PADDING * rand.float32_range(1, 2)) }
+OnScreenSpawner         :: proc(rng: ^rand.Rand, wave: int = 0, cluster: int = 0) -> rl.Vector2 { return random_screen_position() }
 // This is the spawn function the game currently uses.
-OffscreenClusterSpawner :: proc(rng: ^rand.Rand, cluster: int) -> rl.Vector2 {
-    // Initialize the random number generator using the current cluster as the seed.
+OffscreenClusterSpawner :: proc(rng: ^rand.Rand, wave, cluster: int) -> rl.Vector2 {
+    // Initialize the random number generator using the current cluster and wave as the seed.
     // This OffscreenClusterSpawner function is called for each enemy, but each call is independant from another,
     // so by initializing the rng using the cluster as a seed, we can get random numbers from it and know they'll
     // be the same for any other enemies of the same cluster.
-    rand.init(rng, u64(cluster))
+    rand.init(rng, u64(cluster * wave + cluster - wave))
 
     // Enemies will be spawned offscreen. Add some random padding so they are spawned further away from the screen border, randomly.
     padding : f32 = ENEMY_SPAWN_PADDING * rand.float32_range(1.25, 3)

@@ -13,7 +13,7 @@ SPAWN_DELAY                 :: 20
 PICKUP_RADIUS               :: 10
 PICKUP_COLOR                :: rl.YELLOW
 PICKUP_DRAG                 :: 2
-PICKUP_ATTRACTION_RADIUS    :: 200
+PICKUP_ATTRACTION_RADIUS    :: 100
 PICKUP_ATTRACTION_FORCE     :: 5000
 PICKUP_LIFETIME             :: 30
 
@@ -29,21 +29,32 @@ Pickup :: struct {
                                 // When a player gets close enough to a pickup, it automatically follows the player as if it is magnetized
 }
 
+// The procedure to call when hp or xp is picked up. Is passed the pickup type and count and can return modified values
+PickupAction :: proc(game : ^Game, pickup : ^Pickup)
+
 // Just a pool of pickups.
 Pickups :: struct {
     // Note: This Pool data type should be used in more places like particles, enemies, projectiles
-    pool : Pool(512, Pickup)
+    pool                : Pool(512, Pickup),
+    attraction_radius   : f32,                      // Attraction distance for pickups
+    hp_pickup_actions   : [dynamic]PickupAction,    // List of procedures to call when hp is picked up. Returning false cancels pickup
+    xp_pickup_actions   : [dynamic]PickupAction,    // List of procedures to call when xp is picked up. Returning false cancels pickup
 }
 
 // Init functions are called when the game first starts.
 // Here we can initialize data the pickup pool.
 init_pickups :: proc(using pickups : ^Pickups) {
+    attraction_radius = PICKUP_ATTRACTION_RADIUS
+    hp_pickup_actions = make([dynamic]PickupAction)
+    xp_pickup_actions = make([dynamic]PickupAction)
     pool_init(&pool)
 }
 
 // Unload functions are called when the game is closed or restarted.
 // Here we can free the memory allocated by the pickups pool.
 unload_pickups :: proc(using pickups : ^Pickups) {
+    delete(hp_pickup_actions)
+    delete(xp_pickup_actions)
     pool_delete(&pool)
 }
 
@@ -63,12 +74,18 @@ tick_pickups :: proc(using game : ^Game, dt : f32) {
         if dist < PICKUP_RADIUS + player.siz / 2 {
             // Play a sound based on whether the pickup is for xp or hp
             if pickup.xp > 0 {
-                game.leveling.xp += pickup.xp
-                try_play_sound(&audio, audio.collect_xp)
+                for pickup_action in pickups.xp_pickup_actions do pickup_action(game, pickup)
+                if pickup.xp > 0 {
+                    game.leveling.xp += pickup.xp
+                    try_play_sound(&audio, audio.collect_xp)
+                }
             }
             if pickup.hp > 0 {
-                game.player.hth = min(game.player.hth + f32(pickup.hp), game.player.max_hth)
-                try_play_sound(&audio, audio.collect_hp)
+                for pickup_action in pickups.hp_pickup_actions do pickup_action(game, pickup)
+                if pickup.hp > 0 {
+                    game.player.hth = min(game.player.hth + f32(pickup.hp), game.player.max_hth)
+                    try_play_sound(&audio, audio.collect_xp)
+                }
             }
             // Spawn some particles and release the pickup
             spawn_particles_burst(&line_particles, player.pos, pickup.vel * 0.5, 32, 50, 200, 0.2, 0.5, pickup.col, drag = 3)
@@ -77,7 +94,7 @@ tick_pickups :: proc(using game : ^Game, dt : f32) {
             i -= 1
             continue
         } // Otherwise, if the player is close enough to the pickup to attract it
-        else if dist < PICKUP_ATTRACTION_RADIUS || pickup.following {
+        else if dist < pickups.attraction_radius || pickup.following {
             // Add a force to the pickup towards the player.
             // The force starts at 0 when the pickup is first created and increases over time 
             // to add visual interest to pickups which are close to the player when they are first spawned.
@@ -86,7 +103,7 @@ tick_pickups :: proc(using game : ^Game, dt : f32) {
 
             // Once the player is close enough to a pickup for it to be attracted to the player it will always follow the player.
             // This prevents the annoying scenario where a pickup moves towards and overshoots the player, exceeding the attract radius
-            pickup.following   = true
+            pickup.following = true
         }
 
         pickup.vel  *= 1 / (1 + PICKUP_DRAG * dt)   // Apply drag to the pickup

@@ -25,73 +25,101 @@ Weapon :: struct {
     count       : int,      // Number of projectiles to spawn when shooting
     penetration : int,      // (Unused) Number enemies the projectile passes through before becoming "solid"
     bounces     : int,      // Number of times shot projectiles can bounce/deflect before being detroyed
-    last_shoot_time : f64
+    last_shoot_time : f64,
+
+    on_calc_delay : ActionStack(f64, Game),
+    on_draw_weapon : ActionStack(bool, Game),
 }
 
 // Init functions are called when the game first starts.
 // Here we can assign default weapon values.
 init_weapon :: proc(using weapon : ^Weapon) {
     count   = 1
+    bounces = 0
     delay   = SHOOT_DELAY
     speed   = SHOOT_SPEED
     kick    = WEAPON_KICK
     spread  = SHOOT_SPREAD
     last_shoot_time = {}
+
+    init_action_stack(&on_calc_delay)
+    init_action_stack(&on_draw_weapon)
+}
+
+unload_weapon :: proc(using weapon : ^Weapon) {
+    unload_action_stack(&on_calc_delay)
+    unload_action_stack(&on_draw_weapon)
 }
 
 // Tick functions are called every frame by the game
 // Here we'll check player input and shoot if necessary.
-tick_player_weapon :: proc(using weapon : ^Weapon, using player : ^Player, audio : ^Audio, projectiles : ^Projectiles, ps : ^ParticleSystem, game_time : f64) {
-    if !alive do return
+tick_player_weapon :: proc(using game : ^Game) {
+    if !player.alive do return
 
-    time_since_shoot := game_time - last_shoot_time
+    time_since_shoot := game_time - weapon.last_shoot_time
 
-    if (rl.IsMouseButtonDown(.LEFT) || rl.IsKeyDown(.SPACE)) && time_since_shoot > delay {
-        last_shoot_time = game_time
+    effective_delay := weapon.delay;
+    execute_action_stack(weapon.on_calc_delay, &effective_delay, game)
+
+    if (rl.IsMouseButtonDown(.LEFT) || rl.IsKeyDown(.SPACE)) && time_since_shoot > effective_delay {
+        weapon.last_shoot_time = game_time
 
         // kick
-        vel -= get_weapon_dir(player^) * kick
+        player.vel -= get_weapon_dir(player) * weapon.kick
 
         // sfx
-        try_play_sound(audio, audio.laser, debounce = 0.05)
+        try_play_sound(&audio, audio.laser, debounce = 0.05)
 
         // vfx
-        weapon_tip      := get_weapon_tip(player^)
-        particle_dir    := get_weapon_dir(player^)
-        spawn_particles_direction(ps, weapon_tip, +particle_dir, 10, min_speed = 300, max_speed = 2000, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.1, drag = 10)
+        weapon_tip      := get_weapon_tip(player)
+        particle_dir    := get_weapon_dir(player)
+        spawn_particles_direction(&line_particles, weapon_tip, +particle_dir, 10, min_speed = 300, max_speed = 2000, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.1, drag = 10)
         particle_dir     = rl.Vector2Rotate(particle_dir, math.PI / 2)
-        spawn_particles_direction(ps, weapon_tip, -particle_dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.2, drag = 10)
-        spawn_particles_direction(ps, weapon_tip, +particle_dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.2, drag = 10)
+        spawn_particles_direction(&line_particles, weapon_tip, -particle_dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.2, drag = 10)
+        spawn_particles_direction(&line_particles, weapon_tip, +particle_dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.2, drag = 10)
 
         // Spawn `count` number of projectiles.
-        for i in 0..<count {
-            direction := rl.Vector2Rotate(get_weapon_dir(player^), rand.float32_range(-spread, spread))
-            actual_speed := speed * rand.float32_range(0.95, 1)
-            add_projectile(
-                newProjectile = Projectile {
-                    pos = get_weapon_tip(player^),
-                    dir = direction,
-                    spd = actual_speed,
-                    len = math.max(actual_speed * 0.01, 5),
-                    bounces = bounces
-                },
-                projectiles = projectiles,
-            )
+        for i in 0..<weapon.count {
+            shoot(&projectiles, player, weapon, weapon_tip, get_weapon_dir(player))
         }
     }
 }
 
-// Draw functions are called at the end of each frame by the game
-draw_player_weapon :: proc(using player : Player, weapon : Weapon) {
-    if !alive do return
+shoot :: proc(projectiles : ^Projectiles, player : Player, weapon : Weapon, pos, dir : rl.Vector2) {
+    dir := rl.Vector2Rotate(dir, rand.float32_range(-weapon.spread, weapon.spread))
+    actual_speed := weapon.speed * rand.float32_range(0.95, 1)
+    add_projectile(
+        newProjectile = Projectile {
+            pos = pos,
+            dir = dir,
+            spd = actual_speed,
+            len = math.max(actual_speed * 0.01, 5),
+            bounces = weapon.bounces
+        },
+        projectiles = projectiles,
+    )
+}
 
-    weapon_rect  := rl.Rectangle{pos.x, pos.y, WEAPON_WIDTH, WEAPON_LENGTH}
-    weapon_pivot := rl.Vector2{WEAPON_WIDTH / 2, 0}
-    weapon_angle := get_weapon_deg(player)
-    weapon_spread_deg := math.to_degrees(-weapon.spread / 2)
-    // Laser pointer disabled for now
-    //rl.DrawLineV(pos, rl.GetMousePosition(), {255, 0, 0, 80})
-    rl.DrawRectanglePro(weapon_rect, weapon_pivot, weapon_angle, rl.GRAY)
+// Draw functions are called at the end of each frame by the game
+draw_player_weapon :: proc(using game : ^Game) {
+    if !player.alive do return
+
+    draw_weapon := true
+    execute_action_stack(weapon.on_draw_weapon, &draw_weapon, game)
+
+    if draw_weapon {
+        weapon_rect  := rl.Rectangle{
+            player.pos.x, 
+            player.pos.y, 
+            WEAPON_WIDTH, 
+            WEAPON_LENGTH * weapon.speed / SHOOT_SPEED, // gets longer as weapon speed increases
+        }
+    
+        weapon_pivot := rl.Vector2{WEAPON_WIDTH / 2, 0}
+        weapon_angle := get_weapon_deg(player)
+    
+        rl.DrawRectanglePro(weapon_rect, weapon_pivot, weapon_angle, rl.GRAY)
+    }
 }
 
 // Utility function to get the weapon direction (player -> mouse)

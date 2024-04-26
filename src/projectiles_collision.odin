@@ -14,12 +14,25 @@ import rl "vendor:raylib"
 tick_projectiles_screen_collision :: proc(projectiles : ^Projectiles) {
     instances := projectiles.instances
     for proj_idx := 0; proj_idx < projectiles.count; proj_idx += 1 {
-        proj := projectiles.instances[proj_idx]
+        proj := &projectiles.instances[proj_idx]
 
-        if position_offscreen(proj.pos) {
-            release_projectile(proj_idx, projectiles)
-            proj_idx -= 1
-            continue
+        if offscreen, edge, normal := position_offscreen(proj.pos); offscreen {
+            if projectiles.deflect_off_window {
+                if proj.bounces < 1 {
+                    release_projectile(proj_idx, projectiles)
+                    proj_idx -= 1
+                    continue
+                }
+
+                proj.pos = edge
+                proj.dir = linalg.reflect(proj.dir, -normal)
+                proj.bounces -= 1
+            }
+            else {
+                release_projectile(proj_idx, projectiles)
+                proj_idx -= 1
+                continue
+            }
         }
     }
 }
@@ -107,13 +120,24 @@ tick_projectiles_enemy_collision :: proc(projectiles : ^Projectiles, enemies : ^
     }
 }
 
-// Utility function to check if a position is offscreen
+// Utility function to check if/where a position is offscreen
 @(private)
-position_offscreen :: proc(pos : rl.Vector2) -> bool {
+position_offscreen :: proc(pos : rl.Vector2) -> (offscreen : bool, edge, normal : rl.Vector2) {
     width   := f32(rl.GetScreenWidth())
     height  := f32(rl.GetScreenHeight())
-    if pos[0] < 0 || pos[0] > width do return true
-    if pos[1] < 0 || pos[1] > height do return true
+
+    edge = pos
+
+    if pos.x < 0 || pos.x > width {
+        normal.x = -1 if pos.x > 0 else 1
+        edge.x = clamp(edge.x, 0, width)
+        return true, edge, normal
+    }
+    if pos.y < 0 || pos.y > height {
+        normal.y = -1 if pos.y > 0 else 1
+        edge.y = clamp(edge.y, 0, height)
+        return true, edge, normal
+    }
     
-    return false
+    return false, edge, normal
 }

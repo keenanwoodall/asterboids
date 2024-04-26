@@ -13,8 +13,7 @@ Leveling :: struct {
     xp                  : int,
     lvl                 : int,
     leveling_up         : bool,
-    level_up_choice_a   : ModifierPair,
-    level_up_choice_b   : ModifierPair,
+    level_up_choices    : [3]^Modifier,
 }
 
 // Init functions are called when the game first starts.
@@ -23,25 +22,29 @@ init_leveling :: proc(using leveling : ^Leveling) {
     xp = 0
     lvl = 1
     leveling_up = false
-    level_up_choice_a = {}
-    level_up_choice_b = {}
 }
 
 // Tick functions are called every frame by the game
 tick_leveling :: proc(using game : ^Game) {
+    // Level up automatically when debug key is pressed for testing
+    if rl.IsKeyPressed(.L) do leveling.xp = get_target_xp(leveling.lvl)
+
     // Check if our current xp is enough to level up
     if leveling.xp >= get_target_xp(leveling.lvl) {
         // If so, level up, reset xp, generate random level up choices
         // and indicate we want to show level up gui if valid level up choices are found.
         leveling.lvl += 1
         leveling.xp = 0
-        choice_a, a_ok := random_modifier_pair(game)
-        choice_b, b_ok := random_modifier_pair(game, choice_a.positive_mod.type)
+        
+        choice_a, a_ok := random_modifier(game)
+        choice_b, b_ok := random_modifier(game, choice_a.type)
+        choice_c, c_ok := random_modifier(game, choice_a.type, choice_b.type)
 
-        if a_ok && b_ok {
+        if a_ok && b_ok && c_ok {
             leveling.leveling_up = true
-            leveling.level_up_choice_a = choice_a
-            leveling.level_up_choice_b = choice_b
+            leveling.level_up_choices[0] = choice_a
+            leveling.level_up_choices[1] = choice_b
+            leveling.level_up_choices[2] = choice_c
 
             try_play_sound(&audio, audio.level_up)
         }
@@ -52,41 +55,32 @@ tick_leveling :: proc(using game : ^Game) {
 // Draw functions are called at the end of each frame by the game
 // However this function will only be called by the game is leveling.leveling_up is true
 draw_level_up_gui :: proc(using game : ^Game) {
-    PANEL_WIDTH     :: 400
-    PANEL_HEIGHT    :: 200
-
-    or_text         : cstring = "or"
+    PANEL_WIDTH     :: 450
+    PANEL_HEIGHT    :: 150
 
     // Get the two level up choices that we need to present to the player.
-    choice_pair_a   := game.leveling.level_up_choice_a
-    choice_pair_b   := game.leveling.level_up_choice_b
+    choice_a   := game.leveling.level_up_choices[0]
+    choice_b   := game.leveling.level_up_choices[1]
+    choice_c   := game.leveling.level_up_choices[2]
 
     // Create a rect in the center of the screen for the level up panel. 
     window_rect     := centered_rect(PANEL_WIDTH, PANEL_HEIGHT)
 
     // Split the panel vertically. The top rect will be used to display the level-up choices
     // and the bottom rect will show a "Skip" button, should the player not like their options.
-    v_split_rects   := v_split_rect(window_rect, ratio = 1, bias = 50)
-    choices_rect    := v_split_rects[0]
-    skip_rect       := v_split_rects[1]
 
-    // Add padding to the choices and skip rects.
-    choices_rect    = top_padded_rect(choices_rect, 20)
-    skip_rect       = padded_rect(skip_rect, left_pad = 15, right_pad = 15, bottom_pad = 15)
+    // The rect which contains the level-up choices needs padding to accomodate for the top bar of the panel
+    choices_rect    := top_padded_rect(window_rect, 20)
+    // Additional padding so it isn't flush with the panel
+    choices_rect     = uniform_padded_rect(choices_rect, 15)
 
-    // Create a rect in the middle of the two choices rects for a small label that says "or"
-    or_rect         := rect_centered_rect_label(choices_rect, 30, or_text)
-    // Split the choices rect in half. Each of these two rects will display the positive and negative variant of a level up choice.
-    choice_rects    := h_subdivide_rect(choices_rect, 2)
-    uniform_pad_rects(15, &choice_rects)
+    // Split the choices rect in to thirds
+    choice_rects    := h_subdivide_rect(choices_rect, 3)
 
-    // Split the two choice rects in half, with a slight bias to make the positive variants of each choice a bit taller.
-    choice_left_rects := v_split_rect(choice_rects[0], bias = -5)
-    choice_right_rects := v_split_rect(choice_rects[1], bias = -5)
-
-    // More padding!
-    v_pad_rects(5, &choice_left_rects)
-    v_pad_rects(5, &choice_right_rects)
+    // Add inner padding between the choices
+    choice_rects[0]  = padded_rect(choice_rects[0], right_pad = 8)
+    choice_rects[1]  = padded_rect(choice_rects[1], left_pad = 8, right_pad = 8)
+    choice_rects[2]  = padded_rect(choice_rects[2], left_pad = 8)
 
     // Now we have the necessary rects to draw the ui.
 
@@ -102,43 +96,48 @@ draw_level_up_gui :: proc(using game : ^Game) {
         }
     }
 
-    // Draw each level up choice, disabling the ui if the level ip choice is not valid.
+    // Draw each level up choice, disabling the ui if the level up choice is not valid.
     // Level up choices are just Modifiers. See the modifiers.odin file for more info.
 
-    EnableGUI(is_mod_valid(choice_pair_a.positive_mod, game))
-    if rl.GuiButton(choice_left_rects[0], choice_pair_a.positive_mod.description) {
-        leveling.leveling_up = false
-        choice_pair_a.positive_mod.on_choose(game)
-        try_play_sound(&audio, audio.level_up_conf)
-    }
-    EnableGUI(is_mod_valid(choice_pair_a.negative_mod, game))
-    if rl.GuiButton(choice_left_rects[1], choice_pair_a.negative_mod.description) {
-        leveling.leveling_up = false
-        choice_pair_a.negative_mod.on_choose(game)
-        try_play_sound(&audio, audio.level_up_conf)
-    }
-    EnableGUI(is_mod_valid(choice_pair_b.positive_mod, game))
-    if rl.GuiButton(choice_right_rects[0], choice_pair_b.positive_mod.description) {
-        leveling.leveling_up = false
-        choice_pair_b.positive_mod.on_choose(game)
-        try_play_sound(&audio, audio.level_up_conf)
-    }
-    EnableGUI(is_mod_valid(choice_pair_b.negative_mod, game))
-    if rl.GuiButton(choice_right_rects[1], choice_pair_b.negative_mod.description) {
-        leveling.leveling_up = false
-        choice_pair_b.negative_mod.on_choose(game)
-        try_play_sound(&audio, audio.level_up_conf)
-    }
-    EnableGUI(true)
+    if choice_a.single_use do rl.DrawRectangleRec(uniform_padded_rect(choice_rects[0], -2), rl.GOLD)
 
-    if rl.GuiButton(skip_rect, "Skip") {
+    rl.GuiSetTooltip(choice_a.description)   
+    if rl.GuiButton(choice_rects[0], get_temp_mod_display_name_cstring(choice_a^)) {
         leveling.leveling_up = false
+        use_mod(choice_a, game)
+        try_play_sound(&audio, audio.level_up_conf)
     }
 
-    rl.GuiLabel(or_rect, or_text)
+    if choice_b.single_use do rl.DrawRectangleRec(uniform_padded_rect(choice_rects[1], -2), rl.GOLD)
+    
+    rl.GuiSetTooltip(choice_b.description)
+    if rl.GuiButton(choice_rects[1], get_temp_mod_display_name_cstring(choice_b^)) {
+        leveling.leveling_up = false
+        use_mod(choice_b, game)
+        try_play_sound(&audio, audio.level_up_conf)
+    }
+
+    if choice_c.single_use do rl.DrawRectangleRec(uniform_padded_rect(choice_rects[2], -2), rl.GOLD)
+
+    rl.GuiSetTooltip(choice_c.description)
+    if rl.GuiButton(choice_rects[2], get_temp_mod_display_name_cstring(choice_c^)) {
+        leveling.leveling_up = false
+        use_mod(choice_c, game)
+        try_play_sound(&audio, audio.level_up_conf)
+    }
+
+    rl.GuiSetTooltip(nil)
 }
 
 // Calculates the required xp for a given level
 get_target_xp :: proc(level : int) -> int {
     return int(math.pow(f32(level * 6), 1.1))
+}
+
+get_temp_mod_display_name_cstring :: proc(mod : Modifier) -> cstring {
+    if mod.single_use || mod.use_count == 0 {
+        return mod.name
+    }
+
+    return rl.TextFormat("%s (%i)", mod.name, mod.use_count)
 }

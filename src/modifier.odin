@@ -12,189 +12,231 @@ import rl "vendor:raylib"
 
 // All the types of modifiers
 ModifierType :: enum {
-    //Heal,
     MaxHealth,
-    WeaponDelay,
-    WeaponCount,
-    WeaponVelocity,
-    WeaponAccuracy,
-    WeaponBounce,
-    WeaponKick,
-    //PlayerSpeed, // no speed buffs for balancing reasons
+    ProjectileDelay,
+    DoubleBarrel,
+    TripleBarrel,
+    ProjectileVelocity,
+    CollimatingLens,
+    ReflectiveCascade,
+    ProjectileScreenDeflect,
+    ProjectileHoming,
     PlayerAcceleration,
+    MagnetBattery,
+    OverflowBarrage,
+    ThrusterBarrage,
+    AdrenalineRush,
+    ChronalDisruptor,
+    RangeFinder,
+    RetrofireOverdrive
 }
 
 // A Modifier is a thing that can be applied (chosen) to the game state
 // It can do anything, but currently is used for level ups
 Modifier :: struct {
+    name        : cstring,                      // Name of the modifier. Shown in the level up gui
     description : cstring,                      // Description of the modifier. Shown in the level up gui
     type        : ModifierType,                 // What type of modifier is this?
     is_valid    : proc(game : ^Game) -> bool,   // Function that can be called to check if a modifier is valid
     on_choose   : proc(game : ^Game),           // Function that can be called to apply the modifier to the current game state
-}
-
-// Just a pair of modifiers! When leveling up, the player is presented with two modifier types, 
-// and for each they can choose the "positive or "negative" variant. 
-// This is kinda silly, but the player might want to debuf something like weapon accuracy for more spread
-ModifierPair :: struct {
-    positive_mod : Modifier,
-    negative_mod : Modifier,
+    single_use  : bool,                         // Indicates that this modifier can only be chosen once
+    use_count   : int,                          // How many times this modifier has been used
 }
 
 // Mapping of modifier types to modifier pairs.
-// You can index into this map with a modifier type like `WeaponAccuracy` and get back a modifier pair with an accuracty buff and debuff modifier.
+// You can index into this map with a modifier type and get back a modifier.
 // This is where the modifier functionality is actually defined.
-ModifierChoices := [ModifierType]ModifierPair {
-    /* Healing is disabled as a level up choice now that there are health pickups */
-    // .Heal = { 
-    //     positive_mod = {
-    //         type        = .Heal,
-    //         description = "Heal 100%",
-    //         is_valid    = proc(game : ^Game) -> bool { return game.player.hth < game.player.max_hth },
-    //         on_choose   = proc(game : ^Game) { game.player.hth = game.player.max_hth },
-    //     },
-    //     negative_mod = {
-    //         type        = .Heal,
-    //         description = "Lose 25% Health",
-    //         is_valid    = proc(game : ^Game) -> bool { return game.player.hth < game.player.max_hth },
-    //         on_choose   = proc(game : ^Game) { game.player.hth *= 0.75 },
-    //     },
-    // },
+// Note: This should probably be moved into a struct
+ModifierChoices := [ModifierType]Modifier {
     .MaxHealth = { 
-        positive_mod = {
-            type        = .MaxHealth,
-            description = "Max Health + 100",
-            on_choose   = proc(game : ^Game) { game.player.max_hth += 100 }
-        },
-        negative_mod = {
-            type        = .MaxHealth,
-            description = "Max Health - 25",
-            is_valid    = proc(game : ^Game) -> bool { return game.player.max_hth > 25 },
-            on_choose   = proc(game : ^Game) {
-                game.player.max_hth -= 25
-                game.player.hth = math.min(game.player.hth, game.player.max_hth)
-                if game.player.hth <= 0 do game.player.alive = false
-            },
-        },
+        type        = .MaxHealth,
+        name        = "Armor Upgrade",
+        description = "Player's max health increased",
+        on_choose   = proc(game : ^Game) { game.player.max_hth += 100 }
     },
-    .WeaponDelay = {
-        positive_mod = {
-            type        = .WeaponDelay,
-            description = "Fire Rate + 20%",
-            is_valid    = proc(game : ^Game) -> bool { return game.weapon.delay > 0.05 },
-            on_choose   = proc(game : ^Game) { game.weapon.delay *= 0.8 }
-        },
-        negative_mod = {
-            type        = .WeaponDelay,
-            description = "Fire Rate - 5%",
-            is_valid    = proc(game : ^Game) -> bool { return game.weapon.delay < 1 },
-            on_choose   = proc(game : ^Game) { game.weapon.delay *= 1.05 },
-        },
+    .ProjectileDelay = {
+        type        = .ProjectileDelay,
+        name        = "Itchy Finger",
+        description = "Player shoots more rapidly",
+        is_valid    = proc(game : ^Game) -> bool { return game.weapon.delay > 0.05 },
+        on_choose   = proc(game : ^Game) { game.weapon.delay *= 0.8 }
     },
-    .WeaponCount = {
-        positive_mod = {
-            type        = .WeaponCount,
-            description = "Projectile Count + 2",
-            is_valid    = proc(game : ^Game) -> bool { return game.weapon.count < 64 },
-            on_choose   = proc(game : ^Game) { game.weapon.count += 2 }
-        },
-        negative_mod = {
-            type        = .WeaponCount,
-            description = "Projectile Count - 1",
-            is_valid    = proc(game : ^Game) -> bool { return game.weapon.count > 1 },
-            on_choose   = proc(game : ^Game) { game.weapon.count -= 1 },
-        },
+    .DoubleBarrel = {
+        type        = .DoubleBarrel,
+        name        = "Double Barrel",
+        description = "Player shoots two projectiles",
+        single_use  = true,
+        is_valid    = proc(game : ^Game) -> bool { return game.weapon.count < 2 },
+        on_choose   = proc(game : ^Game) { game.weapon.count = 2 }
     },
-    .WeaponVelocity = {
-        positive_mod = {
-            type        = .WeaponVelocity,
-            description = "Velocity + 40%",
-            is_valid    = proc(game : ^Game) -> bool { return game.weapon.speed < 5000 },
-            on_choose   = proc(game : ^Game) { game.weapon.speed *= 1.4 }
-        },
-        negative_mod = {
-            type        = .WeaponVelocity,
-            description = "Velocity - 10%",
-            is_valid    = proc(game : ^Game) -> bool { return game.weapon.speed > 250 },
-            on_choose   = proc(game : ^Game) { game.weapon.speed *= 0.9 },
-        },
+    .TripleBarrel = {
+        type        = .TripleBarrel,
+        name        = "Triple Barrel",
+        description = "Player shoots three projectiles",
+        single_use  = true,
+        is_valid    = proc(game : ^Game) -> bool { return game.weapon.count < 3 && game.weapon.count > 1},
+        on_choose   = proc(game : ^Game) { game.weapon.count = 3 }
     },
-    .WeaponAccuracy = {
-        positive_mod = {
-            type        = .WeaponAccuracy,
-            description = "Accuracy + 50%",
-            is_valid    = proc(game : ^Game) -> bool { return game.weapon.spread > math.to_radians(f32(0.5)) },
-            on_choose   = proc(game : ^Game) { game.weapon.spread *= 0.5 }
-        },
-        negative_mod = {
-            type        = .WeaponAccuracy,
-            description = "Accuracy - 30%",
-            is_valid    = proc(game : ^Game) -> bool { return game.weapon.spread < math.TAU },
-            on_choose   = proc(game : ^Game) { game.weapon.spread = math.min(math.TAU, game.weapon.spread + game.weapon.spread * 0.3) },
-        },
+    .ProjectileVelocity = {
+        type        = .ProjectileVelocity,
+        name        = "Longer Barrel",
+        description = "Player's projectiles move faster",
+        is_valid    = proc(game : ^Game) -> bool { return game.weapon.speed < 5000 },
+        on_choose   = proc(game : ^Game) { game.weapon.speed *= 1.4 }
     },
-    .WeaponBounce = {
-        positive_mod = {
-            type        = .WeaponBounce,
-            description = "Bounces + 2",
-            on_choose   = proc(game : ^Game) { game.weapon.bounces += 2 }
-        },
-        negative_mod = {
-            type        = .WeaponBounce,
-            description = "Bounces - 1",
-            is_valid    = proc(game : ^Game) -> bool { return game.weapon.bounces > 0 },
-            on_choose   = proc(game : ^Game) { game.weapon.bounces -= 1 },
-        },
+    .CollimatingLens = {
+        type        = .CollimatingLens,
+        name        = "Collimating Lens",
+        description = "Player's projectiles ricochet off enemies once",
+        single_use  = true,
+        on_choose   = proc(game : ^Game) { game.weapon.bounces = 1 }
     },
-    .WeaponKick = {
-        positive_mod = {
-            type        = .WeaponKick,
-            description = "Kick - 50%",
-            on_choose   = proc(game : ^Game) { game.weapon.kick *= 0.5 }
-        },
-        negative_mod = {
-            type        = .WeaponKick,
-            description = "Kick + 10%",
-            on_choose   = proc(game : ^Game) { game.weapon.kick *= 1.1 },
-        },
+    .ReflectiveCascade = {
+        type        = .ReflectiveCascade,
+        name        = "Reflective\nCascade",
+        description = "Player's projectiles can ricochet an additional time",
+        is_valid    = proc(game : ^Game) -> bool { return game.weapon.bounces > 0 },
+        on_choose   = proc(game : ^Game) { game.weapon.bounces = 1 }
     },
-    /* Player speed modifiers disabled for balancing (for now?) */
-    // .PlayerSpeed = {
-    //     positive_mod = {
-    //         type        = .PlayerSpeed,
-    //         description = "Speed + 25%",
-    //         on_choose   = proc(game : ^Game) { game.player.spd *= 1.25 }
-    //     },
-    //     negative_mod = {
-    //         type        = .PlayerSpeed,
-    //         description = "Speed - 5%",
-    //         on_choose   = proc(game : ^Game) { game.player.spd *= 0.95 },
-    //     },
-    // },
+    .ProjectileScreenDeflect = {
+        type        = .ProjectileScreenDeflect,
+        name        = "Edge Bounce",
+        description = "Projectiles deflect of screen edges",
+        single_use  = true,
+        is_valid    = proc(game : ^Game) -> bool { return game.weapon.bounces > 0 },
+        on_choose   = proc(game : ^Game) { game.projectiles.deflect_off_window = true }
+    },
+    .ProjectileHoming = {
+        type        = .ProjectileHoming,
+        name        = "Homing Sensors",
+        description = "Projectiles steer towards nearby enemies",
+        single_use  = true,
+        on_choose   = proc(game : ^Game) { 
+            game.projectiles.homing_dist = 3
+            game.projectiles.homing_speed = 5
+        }
+    },
     .PlayerAcceleration = {
-        positive_mod = {
-            type        = .PlayerAcceleration,
-            description = "Acceleration + 30%",
-            on_choose   = proc(game : ^Game) { game.player.acc *= 1.3 }
-        },
-        negative_mod = {
-            type        = .PlayerAcceleration,
-            description = "Acceleration - 10%",
-            on_choose   = proc(game : ^Game) { game.player.acc *= 0.9 },
-        },
+        type        = .PlayerAcceleration,
+        name        = "Thruster Upgrade",
+        description = "Accelerate faster",
+        on_choose   = proc(game : ^Game) { game.player.acc *= 1.3 }
+    },
+    .MagnetBattery = {
+        type        = .MagnetBattery,
+        name        = "Magnet Battery",
+        description = "Pickups are magnetized from a further away",
+        on_choose   = proc(game : ^Game) { game.pickups.attraction_radius += 100 }
+    },
+    .OverflowBarrage = {
+        type        = .OverflowBarrage,
+        name        = "Overflow Barrage",
+        description = "When at full HP, health pickups are converted into projectiles",
+        single_use  = true,
+        on_choose   = proc(game : ^Game) { 
+            append(
+                &game.pickups.hp_pickup_actions, 
+                proc(game : ^Game, pickup : ^Pickup) {
+                    if game.player.hth >= game.player.max_hth - 1 {
+                        shoot(&game.projectiles, game.player, game.weapon, pos = pickup.pos, dir = rl.Vector2Rotate({ 0, 1 }, rand.float32_range(0, math.TAU)))
+                    }
+                }
+            )
+        }
+    },
+    .ThrusterBarrage = {
+        type        = .ThrusterBarrage,
+        name        = "Thruster Barrage",
+        description = "Thruster shoots projectiles",
+        single_use  = true,
+        on_choose   = proc(game : ^Game) { 
+            add_action(&game.player.on_emit_thruster_particles, proc(emit : ^bool, game : ^Game) {
+                if rand.float32_range(0, 1.25) > 1 - (1 / game.player.acc / PLAYER_ACCELERATION) {
+                    shoot(&game.projectiles, game.player, game.weapon, get_player_base(game.player), -get_player_dir(game.player))
+                }
+            })
+        }
+    },
+    .AdrenalineRush = {
+        type        = .AdrenalineRush,
+        name        = "Adrenaline Rush",
+        description = "Increases rate of fire when at low health",
+        single_use  = true,
+        on_choose   = proc(game : ^Game) { 
+            add_action(&game.weapon.on_calc_delay, proc(delay : ^f64, game : ^Game) {
+                if game.player.hth / game.player.max_hth < 0.25 {
+                    delay^ *= 0.75
+                }
+            })
+         }
+    },
+    .ChronalDisruptor = {
+        type        = .ChronalDisruptor,
+        name        = "Chronal Disruptor",
+        description = "Slows time when enemies are near",
+        single_use  = true,
+        on_choose   = proc(game : ^Game) { 
+            add_action(&game.on_calc_time_scale, proc(time_scale : ^f32, game : ^Game) {
+                if near, dist := near_enemy(game.player, game.enemies); near {
+                    n_dist := math.smoothstep(f32(20), 100.0, dist)
+                    n_scale := math.lerp(f32(0.2), 1, n_dist)
+                    time_scale^ *= n_scale
+                }
+            })
+         }
+    },
+    .RangeFinder = {
+        type        = .RangeFinder,
+        name        = "Range Finder",
+        description = "Installs a laser sight onto the player ship",
+        single_use  = true,
+        on_choose   = proc(game : ^Game) { 
+            add_action(&game.weapon.on_draw_weapon, proc(draw : ^bool, game : ^Game) {
+                rl.DrawLineV(game.player.pos, rl.GetMousePosition(), {255, 0, 0, 80})
+            })
+         }
+    },
+    .RetrofireOverdrive = {
+        type        = .RetrofireOverdrive,
+        name        = "Retrofire Overdrive",
+        description = "Player fire rate increases when flying backwards",
+        single_use  = true,
+        on_choose   = proc(game : ^Game) { 
+            add_action(&game.weapon.on_calc_delay, proc(delay : ^f64, game : ^Game) {
+                if vel_dir, ok := safe_normalize(game.player.vel); ok {
+                    if linalg.dot(vel_dir, get_player_dir(game.player)) < -0.5 {
+                        delay^ *= 0.75
+                    }
+                }
+            })
+        }
+    },
+}
+
+unload_mods :: proc() {
+    for &mod in ModifierChoices {
+        mod.use_count = 0
     }
 }
 
 // Utility function to quickly check if a modifier is valid
 is_mod_valid :: proc(mod : Modifier, game : ^Game) -> bool {
-    if mod.is_valid == nil do return true
-    return mod.is_valid(game)
+    if mod.is_valid != nil {
+        return mod.is_valid(game) && (!mod.single_use || mod.use_count == 0)
+    }
+   
+    return !mod.single_use || mod.use_count == 0
 }
 
-// Fetches a random modifier pair and optionally allows certain modifier types to be excluded.
+use_mod :: proc(mod : ^Modifier, game : ^Game) {
+    mod.on_choose(game)
+    mod.use_count += 1
+}
+
+// Fetches a random modifier and optionally allows certain modifier types to be excluded.
 // Excluding types is helpful for preventing the same modifiers choice from being presented twice in the level up gui.
 // The `..ModifierType` syntax lets us pass excluded modifier types as an array, or as individual function arguments.
-random_modifier_pair :: proc(game : ^Game, excluded_types : ..ModifierType) -> (ModifierPair, bool) {
+random_modifier :: proc(game : ^Game, excluded_types : ..ModifierType) -> (^Modifier, bool) {
     // Get the number of available modifier types.
     modifier_count := len(ModifierType)
     // We'll use a random offset when indexing into the modifiers
@@ -213,14 +255,14 @@ random_modifier_pair :: proc(game : ^Game, excluded_types : ..ModifierType) -> (
             if excluded_type == type do continue modifiers
         }
         
-        // Get the pair of positive/negative modifiers for this modifier type
-        mod_pair := ModifierChoices[type]
+        // Get the modifier for this modifier type
+        mod := &ModifierChoices[type]
         
-        // If both modifiers are invaliud, check the next modifier type
-        if !is_mod_valid(mod_pair.positive_mod, game) && !is_mod_valid(mod_pair.negative_mod, game) do continue
+        // If the modifier is invalid, check the next modifier type
+        if !is_mod_valid(mod^, game) do continue
 
         // We found a valid modifier pair!
-        return mod_pair, true
+        return mod, true
     }
 
     // We could not find a valid modifier pair. All the available modifiers were either excluded or invalid.

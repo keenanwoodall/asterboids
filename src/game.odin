@@ -27,13 +27,17 @@ Game :: struct {
     stars           : Stars,            // Stars and their colors. Drawn to the screen as pixels.
 
     game_time       : f64,              // The time used for gameplay.
-    request_restart : bool              // Anything can set this to true and the game will be restarted at the end of the current frame.
+    request_restart : bool,             // Anything can set this to true and the game will be restarted at the end of the current frame.
+
+    on_calc_time_scale : ActionStack(f32, Game),
 }
 
 // Kicks off initialization of the various game systems (where needed, not all systems manage their own state)
 load_game :: proc(using game : ^Game) {
     request_restart = false
     game_time = 0
+
+    init_action_stack(&on_calc_time_scale)
 
     init_player(&player)
     init_leveling(&leveling)
@@ -44,31 +48,43 @@ load_game :: proc(using game : ^Game) {
     init_pickups(&pickups)
     init_stars(&stars)
     load_audio(&audio)
+
+    rl.GuiEnableTooltip()
 }
 
 // Releases resources used by the various game systems (where needed, not all systems manage their own state)
 unload_game :: proc(using game : ^Game) {
+    unload_action_stack(&on_calc_time_scale)
+
+    unload_player(&player)
+    unload_weapon(&weapon)
     unload_enemies(&enemies)
     unload_pickups(&pickups)
     unload_audio(&audio)
+    unload_mods()
 }
 
 // Ticks the various game systems
 tick_game :: proc(using game : ^Game) {
-    dt := rl.GetFrameTime();
+    time_scale : f32 = 1
+    execute_action_stack(on_calc_time_scale, &time_scale, game)
+
+    dt := rl.GetFrameTime() * time_scale;
+
+    if rl.IsKeyDown(.LEFT_SHIFT) do dt *= 0.1
 
     if !leveling.leveling_up {
         // Tick all the things!
         tick_pickups(game, dt)
         tick_leveling(game)
-        tick_player(&player, &audio, &pixel_particles, dt)
-        tick_player_weapon(&weapon, &player, &audio, &projectiles, &pixel_particles, game_time)
+        tick_player(game, dt)
+        tick_player_weapon(game)
         if player.alive {
             tick_waves(&waves, &enemies, dt, game_time)
         }
         tick_enemies(&enemies, player, dt)
         tick_player_enemy_collision(&player, &enemies, &line_particles, dt)
-        tick_projectiles(&projectiles, dt)
+        tick_projectiles(&projectiles, enemies, dt)
         tick_projectiles_screen_collision(&projectiles)
         tick_projectiles_enemy_collision(&projectiles, &enemies, &pixel_particles, &audio)
         tick_killed_enemies(&enemies, &pickups, &line_particles)
@@ -91,11 +107,12 @@ draw_game :: proc(using game : ^Game) {
     rl.ClearBackground(rl.BLACK)
 
     draw_stars(&stars)
+
     draw_player(&player)
     draw_enemies(&enemies)
     draw_projectiles(&projectiles)
     draw_pickups(&pickups)
-    draw_player_weapon(player, weapon)
+    draw_player_weapon(game)
     draw_particles_as_pixels(&pixel_particles)
     draw_particles_as_lines(&line_particles)
     draw_game_gui(game)

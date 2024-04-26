@@ -236,7 +236,8 @@ tick_killed_enemies :: proc(using enemies : ^Enemies, pickups : ^Pickups, ps : ^
 
             spawn_particles_triangle_segments(ps, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
 
-            for i in 0..<enemy.loot {
+            pickup_count := rand.int_max(enemy.loot + 1)
+            for i in 0..<pickup_count {
                 spawn_pickup(pickups, pos, rand.choice_enum(PickupType))
             }
         }
@@ -244,10 +245,14 @@ tick_killed_enemies :: proc(using enemies : ^Enemies, pickups : ^Pickups, ps : ^
 }
 
 // Call this from game.draw_game if you want to visualize the enemies hash grid
-draw_enemies_grid :: proc(using enemies : ^Enemies) {
+draw_enemies_grid :: proc(using enemies : Enemies) {
     for cell in grid.cells {
-        rl.DrawRectangleLinesEx({f32(cell.x) * grid.cell_size, f32(cell.y) * grid.cell_size, grid.cell_size, grid.cell_size}, 1, {255, 255, 255, 20})
+        rl.DrawRectangleLinesEx({f32(cell.x) * grid.cell_size, f32(cell.y) * grid.cell_size, grid.cell_size, grid.cell_size}, 1, {255, 255, 255, 50})
     }
+}
+
+draw_enemy_grid_cell :: proc(using enemies : Enemies, cell_coord : [2]int) {
+    rl.DrawRectangleLinesEx({f32(cell_coord.x) * grid.cell_size, f32(cell_coord.y) * grid.cell_size, grid.cell_size, grid.cell_size}, 1, {255, 0, 0, 100})
 }
 
 // Enemies are triangles. This function calculates the vertices of an enemy triangle.
