@@ -21,22 +21,24 @@ EmitThrustParticleAction :: proc(game : ^Game)
 
 // I have no idea compelled me to use 3-character abbreviations, but I can't rename them easily with OLS :(
 Player :: struct {
-    max_hth : f32,          // Max health
-    hth     : f32,          // Current health
-    rot     : f32,          // Rotation (radians)
-    pos     : rl.Vector2,   // Position
-    vel     : rl.Vector2,   // Velocity
-    acc     : f32,          // Acceleration
-    trq     : f32,          // Turn speed
-    avel    : f32,          // Angular velocity
-    adrg    : f32,          // Angular drag
-    siz     : f32,          // Size
-    alive   : bool,
+    max_hth     : f32,          // Max health
+    hth         : f32,          // Current health
+    rot         : f32,          // Rotation (radians)
+    pos         : rl.Vector2,   // Position
+    vel         : rl.Vector2,   // Velocity
+    acc         : f32,          // Acceleration
+    trq         : f32,          // Turn speed
+    avel        : f32,          // Angular velocity
+    adrg        : f32,          // Angular drag
+    siz         : f32,          // Size
+    alive       : bool,         // Is the player currently alive?
+    knockback   : f32,          // Force applied to player when hit by enemy
 
     on_emit_thruster_particles : ActionStack(bool, Game),
 
     thruster_volume         : f32,
-    last_thruster_emit_tick : time.Tick,
+    last_thruster_emit_tick : time.Tick, // Note: this should be changed to use game time
+    last_damage_time        : f64,       // The last time the player was damaged
 }
 
 init_player :: proc(using player : ^Player) {
@@ -46,15 +48,18 @@ init_player :: proc(using player : ^Player) {
     max_hth = 100
     hth = 100
     rot = 0
-    alive = true
     pos = { half_width, half_height + 50 }
     vel = { 0, 0 }
-    avel = 0
-    siz = PLAYER_SIZE
     acc = PLAYER_ACCELERATION
     trq = PLAYER_TURN_SPEED
+    avel = 0
     adrg = PLAYER_TURN_DRAG
+    siz = PLAYER_SIZE
+    alive = true
+    knockback = 500
+
     thruster_volume = 0
+    last_damage_time = -1000
 
     init_action_stack(&on_emit_thruster_particles)
 }
@@ -136,11 +141,19 @@ tick_player :: proc(using game : ^Game, dt : f32) {
     player.pos += player.vel * dt
 }
 
-draw_player :: proc(using player : ^Player) {
-    if !alive do return
-    radius := siz / 2
-    corners := get_player_corners(player^)
-    rl.DrawTriangle(corners[0], corners[2], corners[1], rl.RAYWHITE)
+draw_player :: proc(using game : ^Game) {
+    if !player.alive do return
+    radius  := player.siz / 2
+    corners := get_player_corners(player)
+
+    color := rl.RAYWHITE
+
+    time_since_damaged : f32 = f32(game_time - player.last_damage_time)
+    if time_since_damaged < PLAYER_DAMAGE_DEBOUNCE {
+        color = rl.RED if (math.mod(time_since_damaged, 0.15) > 0.15 / 2) else color
+    }
+
+    rl.DrawTriangle(corners[0], corners[2], corners[1], color)
 }
 
 // The direction the player is facing

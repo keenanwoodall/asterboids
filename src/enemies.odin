@@ -36,6 +36,7 @@ Enemy :: struct {
     siz     : f32,          // Size
     col     : rl.Color,     // Color
     hp      : int,          // Health points
+    dmg     : f32,
     kill    : bool,         // Killed?
     loot    : int,          // Number of pickups that will be dropped on death
     id      : u8,           // There are different types of enemies, each with a different size/hp/loot etc. 

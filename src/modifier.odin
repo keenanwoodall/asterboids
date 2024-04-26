@@ -29,7 +29,6 @@ ModifierType :: enum {
     ChronalDisruptor,
     RangeFinder,
     RetrofireOverdrive,
-    DoubleLoot,
 }
 
 // A Modifier is a thing that can be applied (chosen) to the game state
@@ -139,7 +138,8 @@ ModifierChoices := [ModifierType]Modifier {
                 &game.pickups.hp_pickup_actions, 
                 proc(game : ^Game, pickup : ^Pickup) {
                     if game.player.hth >= game.player.max_hth - 1 {
-                        shoot(&game.projectiles, game.player, game.weapon, pos = pickup.pos, dir = rl.Vector2Rotate({ 0, 1 }, rand.float32_range(0, math.TAU)))
+                        try_play_sound(&game.audio, game.audio.laser)
+                        shoot(&game.projectiles, game.player, game.weapon, pos = pickup.pos, dir = get_weapon_dir(game.player), color = rl.GREEN)
                     }
                 }
             )
@@ -153,7 +153,7 @@ ModifierChoices := [ModifierType]Modifier {
         on_choose   = proc(game : ^Game) { 
             add_action(&game.player.on_emit_thruster_particles, proc(emit : ^bool, game : ^Game) {
                 if rand.float32_range(0, 1.25) > 1 - (1 / game.player.acc / PLAYER_ACCELERATION) {
-                    shoot(&game.projectiles, game.player, game.weapon, get_player_base(game.player), -get_player_dir(game.player))
+                    shoot(&game.projectiles, game.player, game.weapon, get_player_base(game.player), -get_player_dir(game.player), color = rl.RAYWHITE)
                 }
             })
         }
@@ -211,17 +211,6 @@ ModifierChoices := [ModifierType]Modifier {
                 }
             })
         }
-    },
-    .DoubleLoot = {
-        type        = .DoubleLoot,
-        name        = "Double Loot",
-        description = "Enemies drop double the loot",
-        single_use  = true,
-        on_choose   = proc(game : ^Game) { 
-            add_action(&game.waves.on_calc_loot_multiplier, proc(multiplier : ^int, game : ^Game) {
-                multiplier^ *= 2
-            })
-         }
     },
 }
 

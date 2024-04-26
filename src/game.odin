@@ -82,7 +82,7 @@ tick_game :: proc(using game : ^Game) {
         tick_player_weapon(game)
         if player.alive do tick_waves(game, dt)
         tick_enemies(&enemies, player, dt)
-        tick_player_enemy_collision(&player, &enemies, &line_particles, dt)
+        tick_player_enemy_collision(game, dt)
         tick_projectiles(&projectiles, enemies, dt)
         tick_projectiles_screen_collision(&projectiles)
         tick_projectiles_enemy_collision(&projectiles, &enemies, &pixel_particles, &audio)
@@ -107,7 +107,7 @@ draw_game :: proc(using game : ^Game) {
 
     draw_stars(&stars)
 
-    draw_player(&player)
+    draw_player(game)
     draw_enemies(&enemies)
     draw_projectiles(&projectiles)
     draw_pickups(&pickups)

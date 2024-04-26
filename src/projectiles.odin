@@ -14,7 +14,8 @@ Projectile :: struct {
     dir     : rl.Vector2,   // Direction
     spd     : f32,          // Speed
     len     : f32,          // Length
-    bounces : int       // Bounces remaining
+    bounces : int,          // Bounces remaining,
+    col     : rl.Color
 }
 
 // The projectiles struyct stores the state of all projectiles in a pool.
@@ -55,6 +56,11 @@ tick_projectiles :: proc(using projectiles : ^Projectiles, enemies : Enemies, dt
                     if exists {
                         for enemy_idx in enemy_indices {
                             enemy   := enemies.instances[enemy_idx]
+                            dir     := linalg.normalize(enemy.pos - proj.pos)
+
+                            // Only track enemies that are in front of the projectile
+                            if linalg.dot(dir, proj.dir) < 0.5 do continue
+
                             dist    := linalg.distance(enemy.pos, proj.pos)
 
                             if dist < closest_enemy_distance {
@@ -82,7 +88,7 @@ draw_projectiles :: proc(using projectiles : ^Projectiles) {
     rl.rlSetLineWidth(2)
     #no_bounds_check for i in 0..<count {
         using inst := instances[i]
-        rl.DrawLineV(pos, pos + dir * len, rl.ORANGE)
+        rl.DrawLineV(pos, pos + dir * len, col)
     }
 }
 

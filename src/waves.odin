@@ -104,16 +104,17 @@ spawn_enemies :: proc(
     
     // This is probably a silly way to go about this, but to author the three enemy variants
     // I'm using this struct to store the relevant parameters.
-    Archetype :: struct { size : f32, hp : int, loot : int, color : rl.Color}
+    Archetype :: struct { size : f32, hp : int, dmg : f32, loot : int, color : rl.Color}
 
     // Each archetype is stored in this array.
     @(static)
     Archetypes := [?]Archetype {
-        {ENEMY_SIZE * 1.0, 1, 1, rl.RED},
-        {ENEMY_SIZE * 1.5, 2, 4, rl.ORANGE},
-        {ENEMY_SIZE * 2.5, 7, 10, rl.SKYBLUE} 
+        { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 25, loot = 01, color = rl.RED },
+        { size = ENEMY_SIZE * 1.5, hp = 2, dmg = 40, loot = 04, color = rl.ORANGE },
+        { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 50, loot = 10, color = rl.SKYBLUE } 
     }
 
+    // Calculate our loot multiplier
     loot_multiplier : int = 1
     execute_action_stack(game.waves.on_calc_loot_multiplier, &loot_multiplier, game)
 
@@ -145,6 +146,7 @@ spawn_enemies :: proc(
             vel     = rl.Vector2Rotate({0, 1}, rand.float32_range(0, linalg.TAU)) * ENEMY_SPEED, // A little random start velocity just cuz
             siz     = archetype.size,
             hp      = archetype.hp,
+            dmg     = archetype.dmg,
             loot    = archetype.loot * loot_multiplier,
             col     = archetype.color,
             id      = id,

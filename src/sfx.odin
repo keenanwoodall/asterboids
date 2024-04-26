@@ -16,6 +16,8 @@ SoundHistory :: struct {
 // The Audio struct stores all loaded sounds/music, as well as when each sound was last played.
 Audio :: struct {
     music           : rl.Music,
+    damage          : rl.Sound,
+    die             : rl.Sound,
     laser           : rl.Sound,
     impact          : rl.Sound,
     deflect         : rl.Sound,
@@ -43,6 +45,8 @@ load_audio :: proc(using audio : ^Audio) {
     music.looping   = true
     thrust.looping  = true
 
+    damage          = rl.LoadSound("res/sfx/damage.wav")
+    die             = rl.LoadSound("res/sfx/die.wav")
     laser           = rl.LoadSound("res/sfx/laser.wav")
     impact          = rl.LoadSound("res/sfx/laser_impact.wav")
     deflect         = rl.LoadSound("res/sfx/laser_deflect.wav")
@@ -56,6 +60,8 @@ load_audio :: proc(using audio : ^Audio) {
     level_up_conf   = rl.LoadSound("res/sfx/level_up_confirm.wav")
 
     rl.SetSoundVolume(laser, 0.3)
+    rl.SetSoundVolume(damage, 0.3)
+    rl.SetSoundVolume(die, 0.5)
     rl.SetSoundVolume(deflect, 0.2)
     rl.SetSoundVolume(explosion, 0.3)
     rl.SetSoundVolume(impact, 0.3)
@@ -77,6 +83,8 @@ unload_audio :: proc(using audio : ^Audio) {
     rl.UnloadMusicStream(music)
     rl.UnloadMusicStream(thrust)
     rl.UnloadSound(laser)
+    rl.UnloadSound(damage)
+    rl.UnloadSound(die)
     rl.UnloadSound(impact)
     rl.UnloadSound(deflect)
     rl.UnloadSound(dash)
