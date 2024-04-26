@@ -22,6 +22,8 @@ Waves :: struct {
     wave_idx         : int,         // Current wave index ie: how many waves have been spawned.
     cluster_rand     : rand.Rand,   // Waves of enemies are broken up into smaller groups.
                                     // This is a custom random number generator which is used to get random numbers unique to each cluster
+
+    on_calc_loot_multiplier : ActionStack(int, Game)
 }
 
 // Init functions are called when the game first starts.
@@ -32,11 +34,17 @@ init_waves :: proc(using waves : ^Waves) {
     wave_idx            = 0
     last_wave_time      = -ENEMY_WAVE_DURATION
     cluster_rand        = rand.create(12345)
+
+    init_action_stack(&on_calc_loot_multiplier)
+}
+
+unload_waves :: proc(using waves : ^Waves) {
+    unload_action_stack(&on_calc_loot_multiplier)
 }
 
 // Tick functions are called every frame by the game
 // Keeps track of how long it's been since the last wave of enemies and spawns a new wave accordingly.
-tick_waves :: proc(waves : ^Waves, enemies : ^Enemies, dt : f32, time : f64) {
+tick_waves :: proc(using game : ^Game, dt : f32) {
     // If there are 0 enemies, increment the "no enemies" timer.
     if enemies.count == 0 do waves.no_enemies_timer += dt
 
@@ -48,14 +56,14 @@ tick_waves :: proc(waves : ^Waves, enemies : ^Enemies, dt : f32, time : f64) {
     }
 
     // How long has it been since the last wave of enemies was spawned?
-    elapsed := time - waves.last_wave_time
+    elapsed := game_time - waves.last_wave_time
 
     // If the current wave has gone on longer than the wave duration, or there have been no
     // enemies for more than 2 seconds, spawn the next wave.
     if elapsed > waves.wave_duration || waves.no_enemies_timer > 2 {
         waves.wave_idx += 1
 
-        waves.last_wave_time = time
+        waves.last_wave_time = game_time
         waves.no_enemies_timer = 0
 
         // Wave 1 has 2 enemies, Wave 2 has 4 enemies...etc
@@ -68,7 +76,7 @@ tick_waves :: proc(waves : ^Waves, enemies : ^Enemies, dt : f32, time : f64) {
 
         // Spawn a group of enemies for each cluster
         for i in 0..<cluster_count {
-            spawn_enemies(enemy_count, i, waves, enemies, OffscreenClusterSpawner)
+            spawn_enemies(enemy_count, i, game, OffscreenClusterSpawner)
         }
     }
 }
@@ -91,8 +99,7 @@ draw_waves_gui :: proc(waves : ^Waves, time : f64) {
 spawn_enemies :: proc(
     enemy_count     : int, 
     cluster_idx     : int,
-    waves           : ^Waves, 
-    enemies         : ^Enemies, 
+    game            : ^Game, 
     spawner_proc    : proc(rng: ^rand.Rand, wave, cluster: int)->rl.Vector2) {
     
     // This is probably a silly way to go about this, but to author the three enemy variants
@@ -106,6 +113,9 @@ spawn_enemies :: proc(
         {ENEMY_SIZE * 1.5, 2, 4, rl.ORANGE},
         {ENEMY_SIZE * 2.5, 7, 10, rl.SKYBLUE} 
     }
+
+    loot_multiplier : int = 1
+    execute_action_stack(game.waves.on_calc_loot_multiplier, &loot_multiplier, game)
 
     // For each enemy we want to spawn...
     for i in 0..<enemy_count {
@@ -131,17 +141,17 @@ spawn_enemies :: proc(
         // Create a new enemy, using the spawner_proc to calculate its position and the archetype
         // to configure the rest of its parameters.
         new_enemy : Enemy = {
-            pos     = spawner_proc(&waves.cluster_rand, waves.wave_idx, cluster_idx),
+            pos     = spawner_proc(&game.waves.cluster_rand, game.waves.wave_idx, cluster_idx),
             vel     = rl.Vector2Rotate({0, 1}, rand.float32_range(0, linalg.TAU)) * ENEMY_SPEED, // A little random start velocity just cuz
             siz     = archetype.size,
             hp      = archetype.hp,
-            loot    = archetype.loot,
+            loot    = archetype.loot * loot_multiplier,
             col     = archetype.color,
             id      = id,
         }
 
         // Add the new enemy to the pool of enemies
-        add_enemy(new_enemy, enemies)
+        add_enemy(new_enemy, &game.enemies)
     }
 }
 

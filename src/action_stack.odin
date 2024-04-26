@@ -1,6 +1,10 @@
+// A simple structure that lets you stack functions that modify an input value.
 package game
 
 ActionStack :: struct($Value, $Context : typeid) {
+    // A list of functions which are passed a value and context reference.
+    // The Value is the thing the action can modify. The Context is used to inform the action.
+    // For this game, the context is almost always the Game struct
     actions : [dynamic]proc(value : ^Value, ctx : ^Context),
 }
 

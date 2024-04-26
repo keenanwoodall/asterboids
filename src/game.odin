@@ -59,6 +59,7 @@ unload_game :: proc(using game : ^Game) {
     unload_player(&player)
     unload_weapon(&weapon)
     unload_enemies(&enemies)
+    unload_waves(&waves)
     unload_pickups(&pickups)
     unload_audio(&audio)
     unload_mods()
@@ -79,9 +80,7 @@ tick_game :: proc(using game : ^Game) {
         tick_leveling(game)
         tick_player(game, dt)
         tick_player_weapon(game)
-        if player.alive {
-            tick_waves(&waves, &enemies, dt, game_time)
-        }
+        if player.alive do tick_waves(game, dt)
         tick_enemies(&enemies, player, dt)
         tick_player_enemy_collision(&player, &enemies, &line_particles, dt)
         tick_projectiles(&projectiles, enemies, dt)

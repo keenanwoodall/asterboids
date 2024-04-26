@@ -28,7 +28,8 @@ ModifierType :: enum {
     AdrenalineRush,
     ChronalDisruptor,
     RangeFinder,
-    RetrofireOverdrive
+    RetrofireOverdrive,
+    DoubleLoot,
 }
 
 // A Modifier is a thing that can be applied (chosen) to the game state
@@ -112,8 +113,8 @@ ModifierChoices := [ModifierType]Modifier {
         description = "Projectiles steer towards nearby enemies",
         single_use  = true,
         on_choose   = proc(game : ^Game) { 
-            game.projectiles.homing_dist = 3
-            game.projectiles.homing_speed = 5
+            game.projectiles.homing_dist = 4
+            game.projectiles.homing_speed = 3
         }
     },
     .PlayerAcceleration = {
@@ -210,6 +211,17 @@ ModifierChoices := [ModifierType]Modifier {
                 }
             })
         }
+    },
+    .DoubleLoot = {
+        type        = .DoubleLoot,
+        name        = "Double Loot",
+        description = "Enemies drop double the loot",
+        single_use  = true,
+        on_choose   = proc(game : ^Game) { 
+            add_action(&game.waves.on_calc_loot_multiplier, proc(multiplier : ^int, game : ^Game) {
+                multiplier^ *= 2
+            })
+         }
     },
 }
 
