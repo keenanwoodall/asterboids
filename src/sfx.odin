@@ -16,6 +16,7 @@ SoundHistory :: struct {
 // The Audio struct stores all loaded sounds/music, as well as when each sound was last played.
 Audio :: struct {
     music           : rl.Music,
+    tutorial        : rl.Music,
     damage          : rl.Sound,
     die             : rl.Sound,
     laser           : rl.Sound,
@@ -40,6 +41,7 @@ load_audio :: proc(using audio : ^Audio) {
     sound_history   = make(map[rl.Sound]SoundHistory)
 
     music           = rl.LoadMusicStream("res/music/gameplay.wav")
+    tutorial        = rl.LoadMusicStream("res/music/tutorial.wav")
     thrust          = rl.LoadMusicStream("res/music/thrust.wav")
 
     music.looping   = true
@@ -59,7 +61,7 @@ load_audio :: proc(using audio : ^Audio) {
     level_up        = rl.LoadSound("res/sfx/level_up.wav")
     level_up_conf   = rl.LoadSound("res/sfx/level_up_confirm.wav")
 
-    rl.SetSoundVolume(laser, 0.3)
+    rl.SetSoundVolume(laser, 0.35)
     rl.SetSoundVolume(damage, 0.3)
     rl.SetSoundVolume(die, 0.5)
     rl.SetSoundVolume(deflect, 0.2)
@@ -70,9 +72,10 @@ load_audio :: proc(using audio : ^Audio) {
     rl.SetSoundVolume(level_up, 0.5)
     rl.SetSoundVolume(level_up_conf, 0.5)
     rl.SetMusicVolume(thrust, 0)
+    rl.SetMusicVolume(tutorial, 0.3)
+    rl.SetMusicVolume(music, 0.3)
 
     rl.SetMasterVolume(0.5)
-    rl.PlayMusicStream(music)
     rl.PlayMusicStream(thrust)
 }
 
@@ -81,6 +84,7 @@ unload_audio :: proc(using audio : ^Audio) {
     delete(sound_history)
 
     rl.UnloadMusicStream(music)
+    rl.UnloadMusicStream(tutorial)
     rl.UnloadMusicStream(thrust)
     rl.UnloadSound(laser)
     rl.UnloadSound(damage)
@@ -100,6 +104,7 @@ unload_audio :: proc(using audio : ^Audio) {
 // Ticks the game music. Music streams must be updated each frame.
 tick_audio :: proc(using audio : ^Audio) {
     rl.UpdateMusicStream(music)
+    rl.UpdateMusicStream(tutorial)
     rl.UpdateMusicStream(thrust)
 
     if rl.IsKeyPressed(.M) {

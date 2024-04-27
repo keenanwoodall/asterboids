@@ -110,8 +110,8 @@ spawn_enemies :: proc(
     @(static)
     Archetypes := [?]Archetype {
         { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 35, loot = 1, color = rl.RED },
-        { size = ENEMY_SIZE * 1.5, hp = 2, dmg = 50, loot = 2, color = rl.ORANGE },
-        { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 90, loot = 5, color = rl.SKYBLUE } 
+        { size = ENEMY_SIZE * 1.5, hp = 2, dmg = 50, loot = 3, color = rl.ORANGE },
+        { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 90, loot = 7, color = rl.SKYBLUE } 
     }
 
     // Calculate our loot multiplier

@@ -28,10 +28,18 @@ start_tutorial :: proc(using game : ^Game) {
 
     // Add the new enemy to the pool of enemies
     add_enemy(tutorial_enemy, &enemies)
+    rl.PlayMusicStream(audio.tutorial)
+}
+
+stop_tutorial :: proc(using game : ^Game) {
+    tutorial.complete = true
+    rl.StopMusicStream(audio.tutorial)
+    rl.PlayMusicStream(audio.music)
+    for &enemy in enemies.instances do enemy.kill = true
 }
 
 tick_tutorial :: proc(using game : ^Game) {
-    if enemies.count == 0 do tutorial.complete = true
+    if enemies.count == 0 do stop_tutorial(game)
 }
 
 draw_tutorial :: proc(using game : ^Game) {

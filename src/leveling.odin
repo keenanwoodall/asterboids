@@ -138,7 +138,7 @@ draw_level_up_gui :: proc(using game : ^Game) {
 
 // Calculates the required xp for a given level
 get_target_xp :: proc(level : int) -> int {
-    return int(math.pow(f32(level * 6), 1.1))
+    return int(math.pow(f32(level * 5), 1.1))
 }
 
 get_temp_mod_display_name :: proc(mod : Modifier) -> cstring {
