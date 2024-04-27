@@ -4,7 +4,7 @@
       {
         "label": "Odin Run",
         "type": "shell",
-        "command": "odin run src/ -out:${workspaceFolderBasename}.exe -o:aggressive",
+        "command": "odin run src/ -out:${workspaceFolderBasename}.exe",
         "group": {
           "kind": "build",
           "isDefault": true

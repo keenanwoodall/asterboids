@@ -11,8 +11,7 @@ import rl "vendor:raylib"
 
 main :: proc() {
     // Configure raylib and create a window.
-    rl.SetTraceLogLevel(.ERROR)
-    rl.SetConfigFlags(rl.ConfigFlags { rl.ConfigFlag.MSAA_4X_HINT })
+    rl.SetTraceLogLevel(.ALL)
     rl.InitWindow(width = 1920, height = 1080, title = "Asterboids")
     rl.InitAudioDevice()
     rl.SetTargetFPS(120)

@@ -14,29 +14,42 @@ import rl "vendor:raylib"
 // This is the entire state of the game
 // Each field is its own struct, and stores the state of some 
 Game :: struct {
-    player          : Player,           // Player position, velocity, health etc.
-    tutorial        : Tutorial,
-    leveling        : Leveling,         // Player xp, level and other state related to leveling up.
-    weapon          : Weapon,           // Fire rate, spread, kick etc.
-    enemies         : Enemies,          // Pool of enemies, each with health, velocity etc.
-    waves           : Waves,            // Manages when waves of enemies are spawned, and how many.
-    projectiles     : Projectiles,      // Pool of projectiles fired by the player.
-    pickups         : Pickups,          // Pool of pickups dropped by enemies.
-    audio           : Audio,            // Loaded sounds/music available to be played.
-    pixel_particles : ParticleSystem,   // Pool of particles, which will be drawn to the screen as pixels.
-    line_particles  : ParticleSystem,   // Another pool of particles, which will be drawn to the screen as lines.
-    stars           : Stars,            // Stars and their colors. Drawn to the screen as pixels.
-
+    player          : Player,       // Player position, velocity, health etc.
+    tutorial        : Tutorial,     // Initializes tutorial and manages its state
+    leveling        : Leveling,     // Player xp, level and other state related to leveling up.
+    weapon          : Weapon,       // Fire rate, spread, kick etc.
+    enemies         : Enemies,      // Pool of enemies, each with health, velocity etc.
+    waves           : Waves,        // Manages when waves of enemies are spawned, and how many.
+    pickups         : Pickups,      // Pool of pickups dropped by enemies.
+    audio           : Audio,        // Loaded sounds/music available to be played.
+    stars           : Stars,        // Stars and their colors. Drawn to the screen as pixels.
+    projectiles     : Projectiles,  // Pool of projectiles fired by the player.
+    
     game_time       : f64,              // The time used for gameplay.
     request_restart : bool,             // Anything can set this to true and the game will be restarted at the end of the current frame.
+    
+    pixel_particles : ParticleSystem,   // Pool of particles, which will be drawn to the screen as pixels.
+    line_particles  : ParticleSystem,   // Another pool of particles, which will be drawn to the screen as lines.
 
     on_calc_time_scale : ActionStack(f32, Game),
+
+    render_target_a : rl.RenderTexture2D,   // The texture the game is rendered to.
+    render_target_b : rl.RenderTexture2D,   // The texture the game is rendered to.
+    shaders         : map[string]rl.Shader, // Named shaders
 }
 
 // Kicks off initialization of the various game systems (where needed, not all systems manage their own state)
 load_game :: proc(using game : ^Game) {
+    render_target_a = rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight())
+    render_target_b = rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight())
+
     request_restart = false
     game_time = 0
+
+    shaders = {
+        "CRT"       = rl.LoadShader(vsFileName = nil, fsFileName = "res/shaders/crt.fs"),
+        "Vignette"  = rl.LoadShader(vsFileName = nil, fsFileName = "res/shaders/vignette.fs"),
+    }
 
     init_action_stack(&on_calc_time_scale)
 
@@ -58,6 +71,11 @@ load_game :: proc(using game : ^Game) {
 
 // Releases resources used by the various game systems (where needed, not all systems manage their own state)
 unload_game :: proc(using game : ^Game) {
+    rl.UnloadRenderTexture(render_target_a)
+    rl.UnloadRenderTexture(render_target_b)
+    
+    for _, shader in shaders do rl.UnloadShader(shader)
+
     unload_action_stack(&on_calc_time_scale)
 
     unload_player(&player)
@@ -104,49 +122,83 @@ tick_game :: proc(using game : ^Game) {
 
 // Draws the various parts of the game
 draw_game :: proc(using game : ^Game) {
-    rl.BeginDrawing()
-    defer rl.EndDrawing()
-    
-    rl.ClearBackground(rl.BLACK)
+    // Render game
+    {
+        rl.BeginTextureMode(render_target_a)
+        defer rl.EndTextureMode()
+        
+        rl.ClearBackground({2, 3, 8, 255})
 
-    draw_stars(&stars)
+        draw_stars(&stars)
 
-    draw_player(game)
-    draw_enemies(&enemies)
-    draw_projectiles(&projectiles)
-    draw_pickups(&pickups)
-    draw_player_weapon(game)
-    draw_particles_as_pixels(&pixel_particles)
-    draw_particles_as_lines(&line_particles)
+        draw_player(game)
+        draw_enemies(&enemies)
+        draw_projectiles(&projectiles)
+        draw_pickups(&pickups)
+        draw_player_weapon(game)
+        draw_particles_as_pixels(&pixel_particles)
+        draw_particles_as_lines(&line_particles)
 
-    if !tutorial.complete {
-        draw_tutorial(game)
+        if !tutorial.complete {
+            draw_tutorial(game)
+        }
+        else {
+            draw_game_gui(game)
+            draw_waves_gui(&waves, game_time)
+        }
+
+        if !player.alive {
+            label := strings.clone_to_cstring(
+                fmt.tprintf(
+                    "GAME OVER\n\nWave: %i\nLevel: %i\nEnemies Killed: %i\n\n",
+                    waves.wave_idx,
+                    leveling.lvl,
+                    enemies.kill_count,
+                ), 
+                context.temp_allocator,
+            )
+            font_size : i32 = 20
+            rect := centered_label_rect(screen_rect(), label, font_size)
+
+            rl.DrawText(label, i32(rect.x), i32(rect.y + rect.height / 2 - f32(font_size) / 2), font_size, rl.RED)
+        }
+
+        rl.DrawFPS(10, 10)
     }
-    else {
-        draw_game_gui(game)
-        draw_waves_gui(&waves, game_time)
+
+    // Display game
+    {
+        rl.BeginTextureMode(render_target_b)
+        rl.ClearBackground(rl.BLACK)
+        rl.BeginShaderMode(shaders["CRT"])
+        rl.DrawTextureRec(render_target_a.texture, rl.Rectangle{ 0, 0, f32(render_target_a.texture.width), -f32(render_target_a.texture.height) }, rl.Vector2{ 0, 0 }, rl.WHITE);
+        rl.EndShaderMode()
+        rl.EndTextureMode()
+
+        swap_render_targets(game)
+        
+        rl.BeginTextureMode(render_target_b)
+        rl.ClearBackground(rl.BLACK)
+        rl.BeginShaderMode(shaders["Vignette"])
+        rl.DrawTextureRec(render_target_a.texture, rl.Rectangle{ 0, 0, f32(render_target_a.texture.width), -f32(render_target_a.texture.height) }, rl.Vector2{ 0, 0 }, rl.WHITE);
+        rl.EndShaderMode()
+        rl.EndTextureMode()
+
+        swap_render_targets(game)
+
+        rl.BeginDrawing()
+        defer rl.EndDrawing()
+        
+        rl.DrawTextureRec(render_target_a.texture, rl.Rectangle{ 0, 0, f32(render_target_a.texture.width), -f32(render_target_a.texture.height) }, rl.Vector2{ 0, 0 }, rl.WHITE);
+
+        if leveling.leveling_up {
+            draw_level_up_gui(game)
+        }
     }
+}
 
-
-    if leveling.leveling_up {
-        draw_level_up_gui(game)
-    }
-
-    rl.DrawFPS(10, 10)
-
-    if !player.alive {
-        label := strings.clone_to_cstring(
-            fmt.tprintf(
-                "GAME OVER\n\nWave: %i\nLevel: %i\nEnemies Killed: %i\n\n",
-                waves.wave_idx,
-                leveling.lvl,
-                enemies.kill_count,
-            ), 
-            context.temp_allocator,
-        )
-        font_size : i32 = 20
-        rect := centered_label_rect(screen_rect(), label, font_size)
-
-        rl.DrawText(label, i32(rect.x), i32(rect.y + rect.height / 2 - f32(font_size) / 2), font_size, rl.RED)
-    }
+swap_render_targets :: proc(game : ^Game) {
+    tmp := game.render_target_a
+    game.render_target_a = game.render_target_b;
+    game.render_target_b = tmp
 }
