@@ -48,10 +48,12 @@ I think a lot of people who have exclusively programmed in garbage collected lan
 While you do manage memory manually (try saying that 5 times fast), I found that in practice Odin provides some really helpful facilities which leave you with the advantages of manual memory management without much of the headache.
 
 The first tool Odin puts in your toolbelt is the `defer` keyword. You can use it to "defer" any statement to the end of the current scope. Simple as that.
-This is not unique to Odin, but it was novel to me! Deferring allows you to put the code that cleans something up right below the code that initializes it.
+This is not unique to Odin, but it was novel to me! Deferring allows you to put the code that cleans something up right next to the code that initializes it.
 ```js
 big_array := make([]int, 1000000)
 defer delete(big_array) // this will get called no matter what!
+
+// * do a bunch of stuff
 ```
 It lets you see at a glance that you've done your housekeeping correctly, rather than scrolling all over the place to make sure every `new` at the top of a function was paired with a `free` at the bottom. 
 It also provides definitiveness. No early `return` or other jump in control flow will circumvent a deferred statement. It's a dead simple construct that provides a ton of value.
