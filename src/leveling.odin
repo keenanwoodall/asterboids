@@ -10,10 +10,12 @@ import rl "vendor:raylib"
 
 // The Leveling struct stores the state of the player level and level-up choices
 Leveling :: struct {
-    xp                  : int,
-    lvl                 : int,
-    leveling_up         : bool,
-    level_up_choices    : [3]^Modifier,
+    xp                      : int,
+    lvl                     : int,
+    leveling_up             : bool,
+    level_up_choices        : [3]^Modifier,
+    wait_for_mouse_up       : bool,         // Raylib does not take into account if your mouse was pressed off of the button your release over.
+                                            // We'll use this flag to prevent accidental button clicks when releasing the mouse over a level up choice
 }
 
 // Init functions are called when the game first starts.
@@ -42,6 +44,7 @@ tick_leveling :: proc(using game : ^Game) {
 
         if a_ok && b_ok && c_ok {
             leveling.leveling_up = true
+            leveling.wait_for_mouse_up = rl.IsMouseButtonDown(.LEFT)
             leveling.level_up_choices[0] = choice_a
             leveling.level_up_choices[1] = choice_b
             leveling.level_up_choices[2] = choice_c
@@ -102,7 +105,7 @@ draw_level_up_gui :: proc(using game : ^Game) {
     if choice_a.single_use do rl.DrawRectangleRec(uniform_padded_rect(choice_rects[0], -2), rl.GOLD)
 
     rl.GuiSetTooltip(choice_a.description)   
-    if rl.GuiButton(choice_rects[0], get_temp_mod_display_name_cstring(choice_a^)) {
+    if rl.GuiButton(choice_rects[0], get_temp_mod_display_name(choice_a^)) && !leveling.wait_for_mouse_up {
         leveling.leveling_up = false
         use_mod(choice_a, game)
         try_play_sound(&audio, audio.level_up_conf)
@@ -111,7 +114,7 @@ draw_level_up_gui :: proc(using game : ^Game) {
     if choice_b.single_use do rl.DrawRectangleRec(uniform_padded_rect(choice_rects[1], -2), rl.GOLD)
     
     rl.GuiSetTooltip(choice_b.description)
-    if rl.GuiButton(choice_rects[1], get_temp_mod_display_name_cstring(choice_b^)) {
+    if rl.GuiButton(choice_rects[1], get_temp_mod_display_name(choice_b^)) && !leveling.wait_for_mouse_up {
         leveling.leveling_up = false
         use_mod(choice_b, game)
         try_play_sound(&audio, audio.level_up_conf)
@@ -120,13 +123,17 @@ draw_level_up_gui :: proc(using game : ^Game) {
     if choice_c.single_use do rl.DrawRectangleRec(uniform_padded_rect(choice_rects[2], -2), rl.GOLD)
 
     rl.GuiSetTooltip(choice_c.description)
-    if rl.GuiButton(choice_rects[2], get_temp_mod_display_name_cstring(choice_c^)) {
+    if rl.GuiButton(choice_rects[2], get_temp_mod_display_name(choice_c^)) && !leveling.wait_for_mouse_up {
         leveling.leveling_up = false
         use_mod(choice_c, game)
         try_play_sound(&audio, audio.level_up_conf)
     }
 
     rl.GuiSetTooltip(nil)
+
+    if leveling.wait_for_mouse_up && rl.IsMouseButtonReleased(.LEFT) {
+        leveling.wait_for_mouse_up = false
+    }
 }
 
 // Calculates the required xp for a given level
@@ -134,7 +141,7 @@ get_target_xp :: proc(level : int) -> int {
     return int(math.pow(f32(level * 6), 1.1))
 }
 
-get_temp_mod_display_name_cstring :: proc(mod : Modifier) -> cstring {
+get_temp_mod_display_name :: proc(mod : Modifier) -> cstring {
     if mod.single_use || mod.use_count == 0 {
         return mod.name
     }

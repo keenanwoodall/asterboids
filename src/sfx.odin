@@ -72,7 +72,7 @@ load_audio :: proc(using audio : ^Audio) {
     rl.SetMusicVolume(thrust, 0)
 
     rl.SetMasterVolume(0.5)
-    //rl.PlayMusicStream(music)
+    rl.PlayMusicStream(music)
     rl.PlayMusicStream(thrust)
 }
 

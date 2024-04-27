@@ -4,6 +4,7 @@ package game
 
 import "core:fmt"
 import "core:math"
+import "core:math/rand"
 import "core:time"
 import "core:math/linalg"
 import rl "vendor:raylib"
@@ -13,7 +14,7 @@ PLAYER_TURN_SPEED           :: 50
 PLAYER_TURN_DRAG            :: 5
 PLAYER_ACCELERATION         :: 350
 PLAYER_BRAKING_ACCELERATION :: 3
-PLAYER_THRUST_EMIT_DELAY    :: 0.01
+PLAYER_THRUST_EMIT_DELAY    :: 0.02
 PLAYER_THRUST_VOLUME_ATTACK :: 10
 PLAYER_MAX_SPEED            :: 400
 
@@ -103,7 +104,7 @@ tick_player :: proc(using game : ^Game, dt : f32) {
             if can_emit {
                 should_emit := true
                 execute_action_stack(player.on_emit_thruster_particles, &should_emit, game)
-                if should_emit do emit_thruster_particles(&player, &pixel_particles, -dir, acceleration)
+                if should_emit do emit_thruster_particles(&player, &line_particles, -dir, acceleration)
             }
         }
     }
@@ -187,12 +188,13 @@ emit_thruster_particles :: proc(using player : ^Player, ps : ^ParticleSystem, di
         particle_system = ps, 
         center          = get_player_base(player^),
         direction       = norm_dir, 
-        count           = int(0.005 * acceleration), 
+        count           = int(0.0035 * acceleration) + 1, 
         min_speed       = 200,
         max_speed       = 1000,
         min_lifetime    = 0.1,
         max_lifetime    = 0.5,
-        color           = rl.GRAY,
+        size            = { 1, 10 },
+        color           = rl.ORANGE,
         angle           = .2,
         drag            = 5,
     )

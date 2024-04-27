@@ -34,6 +34,7 @@ Enemy :: struct {
     vel     : rl.Vector2,   // Velocity
     rot     : f32,          // Rotation (radians)
     siz     : f32,          // Size
+    spd     : f32,          // Speed multiplier
     col     : rl.Color,     // Color
     hp      : int,          // Health points
     dmg     : f32,
@@ -177,7 +178,7 @@ tick_enemies :: proc(using enemies : ^Enemies, player : Player, dt : f32) {
 
                 // Add the steer force to the enemy, limit its speed, and move the enemy along its new velocity
                 vel += steer_force * dt
-                vel = limit_length(vel, ENEMY_SPEED / siz)
+                vel = limit_length(vel, (ENEMY_SPEED * spd) / siz)
                 pos += vel * dt
 
                 // Enemies are rotated to face along their velocity. 
@@ -239,7 +240,7 @@ tick_killed_enemies :: proc(using enemies : ^Enemies, pickups : ^Pickups, ps : ^
 
             pickup_count := rand.int_max(enemy.loot + 1)
             for i in 0..<pickup_count {
-                spawn_pickup(pickups, pos, rand.choice_enum(PickupType))
+                spawn_pickup(pickups, pos, PickupType.XP if rand.float32_range(0, 1) > 0.4 else PickupType.Health)
             }
         }
     }

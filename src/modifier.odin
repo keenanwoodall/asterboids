@@ -64,18 +64,24 @@ ModifierChoices := [ModifierType]Modifier {
     .DoubleBarrel = {
         type        = .DoubleBarrel,
         name        = "Double Barrel",
-        description = "Player shoots two projectiles",
+        description = "Player shoots two projectiles. Increased spread.",
         single_use  = true,
         is_valid    = proc(game : ^Game) -> bool { return game.weapon.count < 2 },
-        on_choose   = proc(game : ^Game) { game.weapon.count = 2 }
+        on_choose   = proc(game : ^Game) { 
+            game.weapon.count = 2
+            game.weapon.spread += math.to_radians(f32(5))
+        }
     },
     .TripleBarrel = {
         type        = .TripleBarrel,
         name        = "Triple Barrel",
-        description = "Player shoots three projectiles",
+        description = "Player shoots three projectiles. Increased spread.",
         single_use  = true,
         is_valid    = proc(game : ^Game) -> bool { return game.weapon.count < 3 && game.weapon.count > 1},
-        on_choose   = proc(game : ^Game) { game.weapon.count = 3 }
+        on_choose   = proc(game : ^Game) { 
+            game.weapon.count = 3 
+            game.weapon.spread += math.to_radians(f32(2))
+        }
     },
     .ProjectileVelocity = {
         type        = .ProjectileVelocity,
@@ -113,7 +119,7 @@ ModifierChoices := [ModifierType]Modifier {
         single_use  = true,
         on_choose   = proc(game : ^Game) { 
             game.projectiles.homing_dist = 4
-            game.projectiles.homing_speed = 3
+            game.projectiles.homing_speed = 5
         }
     },
     .PlayerAcceleration = {
@@ -124,7 +130,7 @@ ModifierChoices := [ModifierType]Modifier {
     },
     .MagnetBattery = {
         type        = .MagnetBattery,
-        name        = "Magnet Battery",
+        name        = "Bigger Magnet",
         description = "Pickups are magnetized from a further away",
         on_choose   = proc(game : ^Game) { game.pickups.attraction_radius += 100 }
     },
@@ -139,7 +145,7 @@ ModifierChoices := [ModifierType]Modifier {
                 proc(game : ^Game, pickup : ^Pickup) {
                     if game.player.hth >= game.player.max_hth - 1 {
                         try_play_sound(&game.audio, game.audio.laser)
-                        shoot(&game.projectiles, game.player, game.weapon, pos = pickup.pos, dir = get_weapon_dir(game.player), color = rl.GREEN)
+                        shoot(&game.projectiles, game.player, game.weapon, pos = pickup.pos, dir = get_weapon_dir(game.player), color = rl.Color{ 0, 228, 48, 100 })
                     }
                 }
             )
@@ -153,7 +159,8 @@ ModifierChoices := [ModifierType]Modifier {
         on_choose   = proc(game : ^Game) { 
             add_action(&game.player.on_emit_thruster_particles, proc(emit : ^bool, game : ^Game) {
                 if rand.float32_range(0, 1.25) > 1 - (1 / game.player.acc / PLAYER_ACCELERATION) {
-                    shoot(&game.projectiles, game.player, game.weapon, get_player_base(game.player), -get_player_dir(game.player), color = rl.RAYWHITE)
+                    try_play_sound(&game.audio, game.audio.laser)
+                    shoot(&game.projectiles, game.player, game.weapon, get_player_base(game.player), -get_player_dir(game.player), color = rl.Color{ 255, 161, 0, 100 })
                 }
             })
         }
@@ -165,7 +172,7 @@ ModifierChoices := [ModifierType]Modifier {
         single_use  = true,
         on_choose   = proc(game : ^Game) { 
             add_action(&game.weapon.on_calc_delay, proc(delay : ^f64, game : ^Game) {
-                if game.player.hth / game.player.max_hth < 0.25 {
+                if game.player.hth / game.player.max_hth < 0.5 {
                     delay^ *= 0.75
                 }
             })
@@ -206,7 +213,7 @@ ModifierChoices := [ModifierType]Modifier {
             add_action(&game.weapon.on_calc_delay, proc(delay : ^f64, game : ^Game) {
                 if vel_dir, ok := safe_normalize(game.player.vel); ok {
                     if linalg.dot(vel_dir, get_player_dir(game.player)) < -0.5 {
-                        delay^ *= 0.75
+                        delay^ *= 0.5
                     }
                 }
             })

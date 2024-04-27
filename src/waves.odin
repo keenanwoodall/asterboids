@@ -109,9 +109,9 @@ spawn_enemies :: proc(
     // Each archetype is stored in this array.
     @(static)
     Archetypes := [?]Archetype {
-        { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 25, loot = 01, color = rl.RED },
-        { size = ENEMY_SIZE * 1.5, hp = 2, dmg = 40, loot = 04, color = rl.ORANGE },
-        { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 50, loot = 10, color = rl.SKYBLUE } 
+        { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 35, loot = 1, color = rl.RED },
+        { size = ENEMY_SIZE * 1.5, hp = 2, dmg = 50, loot = 2, color = rl.ORANGE },
+        { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 90, loot = 5, color = rl.SKYBLUE } 
     }
 
     // Calculate our loot multiplier
@@ -145,6 +145,7 @@ spawn_enemies :: proc(
             pos     = spawner_proc(&game.waves.cluster_rand, game.waves.wave_idx, cluster_idx),
             vel     = rl.Vector2Rotate({0, 1}, rand.float32_range(0, linalg.TAU)) * ENEMY_SPEED, // A little random start velocity just cuz
             siz     = archetype.size,
+            spd     = 1,
             hp      = archetype.hp,
             dmg     = archetype.dmg,
             loot    = archetype.loot * loot_multiplier,

@@ -15,6 +15,7 @@ import rl "vendor:raylib"
 // Each field is its own struct, and stores the state of some 
 Game :: struct {
     player          : Player,           // Player position, velocity, health etc.
+    tutorial        : Tutorial,
     leveling        : Leveling,         // Player xp, level and other state related to leveling up.
     weapon          : Weapon,           // Fire rate, spread, kick etc.
     enemies         : Enemies,          // Pool of enemies, each with health, velocity etc.
@@ -40,6 +41,7 @@ load_game :: proc(using game : ^Game) {
     init_action_stack(&on_calc_time_scale)
 
     init_player(&player)
+    init_tutorial(&tutorial)
     init_leveling(&leveling)
     init_weapon(&weapon)
     init_enemies(&enemies)
@@ -50,6 +52,8 @@ load_game :: proc(using game : ^Game) {
     load_audio(&audio)
 
     rl.GuiEnableTooltip()
+
+    start_tutorial(game)
 }
 
 // Releases resources used by the various game systems (where needed, not all systems manage their own state)
@@ -69,10 +73,14 @@ unload_game :: proc(using game : ^Game) {
 tick_game :: proc(using game : ^Game) {
     time_scale : f32 = 1
     execute_action_stack(on_calc_time_scale, &time_scale, game)
-
     dt := rl.GetFrameTime() * time_scale;
 
-    if rl.IsKeyDown(.LEFT_SHIFT) do dt *= 0.1
+    tick_audio(&audio)
+    request_restart = rl.IsKeyPressed(.R)
+
+    if !tutorial.complete {
+        tick_tutorial(game)
+    }
 
     if !leveling.leveling_up {
         // Tick all the things!
@@ -80,7 +88,7 @@ tick_game :: proc(using game : ^Game) {
         tick_leveling(game)
         tick_player(game, dt)
         tick_player_weapon(game)
-        if player.alive do tick_waves(game, dt)
+        if player.alive && tutorial.complete do tick_waves(game, dt)
         tick_enemies(&enemies, player, dt)
         tick_player_enemy_collision(game, dt)
         tick_projectiles(&projectiles, enemies, dt)
@@ -92,10 +100,6 @@ tick_game :: proc(using game : ^Game) {
 
         game_time += f64(dt)
     }
-
-    tick_audio(&audio)
-
-    request_restart = rl.IsKeyPressed(.R)
 }
 
 // Draws the various parts of the game
@@ -114,8 +118,15 @@ draw_game :: proc(using game : ^Game) {
     draw_player_weapon(game)
     draw_particles_as_pixels(&pixel_particles)
     draw_particles_as_lines(&line_particles)
-    draw_game_gui(game)
-    draw_waves_gui(&waves, game_time)
+
+    if !tutorial.complete {
+        draw_tutorial(game)
+    }
+    else {
+        draw_game_gui(game)
+        draw_waves_gui(&waves, game_time)
+    }
+
 
     if leveling.leveling_up {
         draw_level_up_gui(game)

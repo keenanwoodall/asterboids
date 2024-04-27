@@ -65,7 +65,6 @@ draw_particles_as_pixels :: proc(using particle_system : ^ParticleSystem) {
 // Draw functions are called at the end of each frame by the game
 // Draws a particle system as lines
 draw_particles_as_lines :: proc(using particle_system : ^ParticleSystem) {
-    rl.rlSetLineWidth(3)
     for p in particles[0:count] {
         alpha := math.pow((1 - p.tim / p.dur), .5)
         p1 := p.pos
@@ -183,17 +182,22 @@ spawn_particles_direction :: proc(
     color           : rl.Color,
     angle           : f32 = 0,
     drag            : f32 = 0,
-    angular_drag    : f32 = 0) {
+    angular_drag    : f32 = 0,
+    size            : rl.Vector2 = { 1, 1 }) {
         
     for i in 0..<count {
-        speed           := rand.float32_range(min_speed, max_speed)
+        speed       := rand.float32_range(min_speed, max_speed)
+        vel         := rl.Vector2Rotate(direction * speed, rand.float32_range(-angle, angle))
+        rand_dir    := linalg.normalize(vel)
         new_particle    := Particle {
             pos = center,
-            vel = rl.Vector2Rotate(direction * speed, rand.float32_range(-angle, angle)),
+            vel = vel,
             col = color,
             dur = rand.float32_range(min_lifetime, max_lifetime),
             vdg = drag,
-            adg = drag
+            adg = drag,
+            siz = size,
+            rot = math.atan2(rand_dir.y, rand_dir.x) - math.PI / 2,
         }
         add_particle(new_particle, particle_system)
     }

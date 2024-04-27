@@ -11,7 +11,7 @@ import rl "vendor:raylib"
 
 SHOOT_DELAY     :: 0.25
 SHOOT_SPEED     :: 1000
-SHOOT_SPREAD    :: math.RAD_PER_DEG * 5
+SHOOT_SPREAD    :: 0
 WEAPON_WIDTH    :: 3
 WEAPON_LENGTH   :: 10
 WEAPON_KICK     :: 0
