@@ -44,9 +44,9 @@ unload_waves :: proc(using waves : ^Waves) {
 
 // Tick functions are called every frame by the game
 // Keeps track of how long it's been since the last wave of enemies and spawns a new wave accordingly.
-tick_waves :: proc(using game : ^Game, dt : f32) {
+tick_waves :: proc(using game : ^Game) {
     // If there are 0 enemies, increment the "no enemies" timer.
-    if enemies.count == 0 do waves.no_enemies_timer += dt
+    if enemies.count == 0 do waves.no_enemies_timer += game_delta_time
 
     // Pressing N skips the current wave and spawns the next one immediately
     // Used when testing to quickly skip to harder waves.

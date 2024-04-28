@@ -13,7 +13,7 @@ SHOOT_DELAY     :: 0.25
 SHOOT_SPEED     :: 1000
 SHOOT_SPREAD    :: 0
 WEAPON_WIDTH    :: 3
-WEAPON_LENGTH   :: 10
+WEAPON_LENGTH   :: 20
 WEAPON_KICK     :: 0
 
 // The state of the player weapon
@@ -113,7 +113,7 @@ draw_player_weapon :: proc(using game : ^Game) {
             player.pos.x, 
             player.pos.y, 
             WEAPON_WIDTH, 
-            WEAPON_LENGTH * weapon.speed / SHOOT_SPEED, // gets longer as weapon speed increases
+            WEAPON_LENGTH * (1 + math.log10(weapon.speed / SHOOT_SPEED)), // gets longer as weapon speed increases
         }
     
         weapon_pivot := rl.Vector2{WEAPON_WIDTH / 2, 0}

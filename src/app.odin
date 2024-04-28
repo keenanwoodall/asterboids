@@ -14,7 +14,7 @@ main :: proc() {
     rl.SetTraceLogLevel(.ALL)
     rl.InitWindow(width = 1920, height = 1080, title = "Asterboids")
     rl.InitAudioDevice()
-    rl.SetTargetFPS(120)
+    rl.SetTargetFPS(144)
 
     defer {
         rl.CloseAudioDevice()

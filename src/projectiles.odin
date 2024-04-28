@@ -84,11 +84,11 @@ tick_projectiles :: proc(using projectiles : ^Projectiles, enemies : Enemies, dt
 
 // Draw functions are called at the end of each frame by the game.
 // Each projectile is just a line from its position along its direction of movement
-draw_projectiles :: proc(using projectiles : ^Projectiles) {
+draw_projectiles :: proc(using projectiles : ^Projectiles, opacity : f32 = 1) {
     rl.rlSetLineWidth(2)
     #no_bounds_check for i in 0..<count {
         using inst := instances[i]
-        rl.DrawLineV(pos, pos + dir * len, col)
+        rl.DrawLineV(pos, pos + dir * len, rl.ColorAlpha(col, opacity))
     }
 }
 

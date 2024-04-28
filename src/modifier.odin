@@ -12,7 +12,7 @@ import rl "vendor:raylib"
 
 // All the types of modifiers
 ModifierType :: enum {
-    MaxHealth,
+    // MaxHealth, // removed for balancing
     ProjectileDelay,
     DoubleBarrel,
     TripleBarrel,
@@ -48,12 +48,12 @@ Modifier :: struct {
 // This is where the modifier functionality is actually defined.
 // Note: This should probably be moved into a struct
 ModifierChoices := [ModifierType]Modifier {
-    .MaxHealth = { 
-        type        = .MaxHealth,
-        name        = "Armor Upgrade",
-        description = "Player's max health increased",
-        on_choose   = proc(game : ^Game) { game.player.max_hth += 100 }
-    },
+    // .MaxHealth = { 
+    //     type        = .MaxHealth,
+    //     name        = "Armor Upgrade",
+    //     description = "Player's max health increased",
+    //     on_choose   = proc(game : ^Game) { game.player.max_hth += 100 }
+    // },
     .ProjectileDelay = {
         type        = .ProjectileDelay,
         name        = "Itchy Finger",
@@ -126,13 +126,13 @@ ModifierChoices := [ModifierType]Modifier {
         type        = .PlayerAcceleration,
         name        = "Thruster Upgrade",
         description = "Accelerate faster",
-        on_choose   = proc(game : ^Game) { game.player.acc *= 1.3 }
+        on_choose   = proc(game : ^Game) { game.player.acc *= 1.4 }
     },
     .MagnetBattery = {
         type        = .MagnetBattery,
         name        = "Bigger Magnet",
         description = "Pickups are magnetized from a further away",
-        on_choose   = proc(game : ^Game) { game.pickups.attraction_radius += 100 }
+        on_choose   = proc(game : ^Game) { game.pickups.attraction_radius += 75 }
     },
     .OverflowBarrage = {
         type        = .OverflowBarrage,
@@ -159,7 +159,6 @@ ModifierChoices := [ModifierType]Modifier {
         on_choose   = proc(game : ^Game) { 
             add_action(&game.player.on_emit_thruster_particles, proc(emit : ^bool, game : ^Game) {
                 if rand.float32_range(0, 1.25) > 1 - (1 / game.player.acc / PLAYER_ACCELERATION) {
-                    try_play_sound(&game.audio, game.audio.laser)
                     shoot(&game.projectiles, game.player, game.weapon, get_player_base(game.player), -get_player_dir(game.player), color = rl.Color{ 255, 161, 0, 100 })
                 }
             })
@@ -185,6 +184,8 @@ ModifierChoices := [ModifierType]Modifier {
         single_use  = true,
         on_choose   = proc(game : ^Game) { 
             add_action(&game.on_calc_time_scale, proc(time_scale : ^f32, game : ^Game) {
+                // no slo-mo while invulnerable due to damage
+                if game.game_time - game.player.last_damage_time < PLAYER_DAMAGE_DEBOUNCE do return
                 if near, dist := near_enemy(game.player, game.enemies); near {
                     n_dist := math.smoothstep(f32(20), 100.0, dist)
                     n_scale := math.lerp(f32(0.2), 1, n_dist)
@@ -206,14 +207,14 @@ ModifierChoices := [ModifierType]Modifier {
     },
     .RetrofireOverdrive = {
         type        = .RetrofireOverdrive,
-        name        = "Retrofire Overdrive",
+        name        = "Retrofire",
         description = "Player fire rate increases when flying backwards",
         single_use  = true,
         on_choose   = proc(game : ^Game) { 
             add_action(&game.weapon.on_calc_delay, proc(delay : ^f64, game : ^Game) {
-                if vel_dir, ok := safe_normalize(game.player.vel); ok {
+                if vel_dir, ok := safe_normalize(game.player.vel); ok && linalg.length(game.player.vel) > 5 {
                     if linalg.dot(vel_dir, get_player_dir(game.player)) < -0.5 {
-                        delay^ *= 0.5
+                        delay^ *= 0.75
                     }
                 }
             })

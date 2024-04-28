@@ -15,21 +15,22 @@ SoundHistory :: struct {
 
 // The Audio struct stores all loaded sounds/music, as well as when each sound was last played.
 Audio :: struct {
-    music           : rl.Music,
-    tutorial        : rl.Music,
-    damage          : rl.Sound,
-    die             : rl.Sound,
-    laser           : rl.Sound,
-    impact          : rl.Sound,
-    deflect         : rl.Sound,
-    dash            : rl.Sound,
-    pickup          : rl.Sound,
-    explosion       : rl.Sound,
-    collect_xp      : rl.Sound,
-    collect_hp      : rl.Sound,
-    level_up        : rl.Sound,
-    level_up_conf   : rl.Sound,
-    thrust          : rl.Music, // Thrust is loaded as music so that it loops when played.
+    music : rl.Music,
+    tutorial : rl.Music,
+    damage : rl.Sound,
+    die : rl.Sound,
+    laser : rl.Sound,
+    impact : rl.Sound,
+    deflect : rl.Sound,
+    dash : rl.Sound,
+    pickup : rl.Sound,
+    explosion : rl.Sound,
+    player_explosion : rl.Sound,
+    collect_xp : rl.Sound,
+    collect_hp : rl.Sound,
+    level_up : rl.Sound,
+    level_up_conf : rl.Sound,
+    thrust : rl.Music, // Thrust is loaded as music so that it loops when played.
                                 // If there's a way to loop sounds this is unnecessary.
 
     sound_history   : map[rl.Sound]SoundHistory
@@ -55,18 +56,20 @@ load_audio :: proc(using audio : ^Audio) {
     dash            = rl.LoadSound("res/sfx/dash.wav")
     pickup          = rl.LoadSound("res/sfx/pickup.wav")
     explosion       = rl.LoadSound("res/sfx/enemy_explosion.wav")
+    player_explosion = rl.LoadSound("res/sfx/player_explosion.wav")
 
     collect_hp      = rl.LoadSound("res/sfx/collect_hp.wav")
     collect_xp      = rl.LoadSound("res/sfx/collect_xp.wav")
     level_up        = rl.LoadSound("res/sfx/level_up.wav")
     level_up_conf   = rl.LoadSound("res/sfx/level_up_confirm.wav")
 
-    rl.SetSoundVolume(laser, 0.35)
+    rl.SetSoundVolume(laser, 0.25)
     rl.SetSoundVolume(damage, 0.3)
+    rl.SetSoundVolume(dash, 0.2)
     rl.SetSoundVolume(die, 0.5)
-    rl.SetSoundVolume(deflect, 0.2)
-    rl.SetSoundVolume(explosion, 0.3)
-    rl.SetSoundVolume(impact, 0.3)
+    rl.SetSoundVolume(deflect, 0.15)
+    rl.SetSoundVolume(explosion, 0.2)
+    rl.SetSoundVolume(impact, 0.2)
     rl.SetSoundVolume(collect_hp, 0.2)
     rl.SetSoundVolume(collect_xp, 0.2)
     rl.SetSoundVolume(level_up, 0.5)

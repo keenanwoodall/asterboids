@@ -11,7 +11,7 @@ PLAYER_DAMAGE_DEBOUNCE  :: 0.75
 
 // Tick functions are called every frame by the game.
 // This checks whether the player is overlapping any enemies, and deals damage to the player if so.
-tick_player_enemy_collision :: proc(using game : ^Game, dt : f32) {
+tick_player_enemy_collision :: proc(using game : ^Game) {
     if !player.alive do return
 
     if game_time - player.last_damage_time < PLAYER_DAMAGE_DEBOUNCE do return
@@ -24,29 +24,25 @@ tick_player_enemy_collision :: proc(using game : ^Game, dt : f32) {
     // If there isn't a cell at the player's position, there aren't any enemies nearby and we can return.
     if !exists do return
 
-    hit_player      := false
-    hit_damage      : f32 = 0
-    knock_back_dir  := rl.Vector2{}
     
     // Iterate over the enemies in the same cell as the player and apply damage for each collision.
     for enemy_idx in enemy_indices {
         using enemy := &enemies.instances[enemy_idx]
         if hit, point := check_player_enemy_collision(player, enemy^); hit {
-            hit_player = true
-            hit_damage += enemy.dmg
-            knock_back_dir += linalg.normalize(player.pos - enemy.pos)
-
+            knock_back_dir := linalg.normalize(player.pos - enemy.pos)
             particle_dir := linalg.normalize(enemy.pos - player.pos)
+
             spawn_particles_direction(&pixel_particles, player.pos, particle_dir, count = 32, min_speed = 50, max_speed = 300, min_lifetime = 0.1, max_lifetime = 0.75, color = rl.RAYWHITE, angle = math.PI / 3, drag = 5)
             try_play_sound(&audio, audio.damage)
-        }
-    }
 
-    if hit_player {
-        knock_back_dir = linalg.normalize(knock_back_dir)
-        player.vel = knock_back_dir * player.knockback
-        player.last_damage_time = game_time
-        player.hth -= hit_damage
+            player.vel = knock_back_dir * player.knockback
+            player.last_damage_time = game_time
+            player.hth -= enemy.dmg
+
+            enemy.vel = -knock_back_dir * player.knockback
+
+            break
+        }
     }
 
     // Note: Checking the enemies in the same cell as the player is not quite thorough
@@ -58,7 +54,7 @@ tick_player_enemy_collision :: proc(using game : ^Game, dt : f32) {
         player.alive = false
         player.hth = 0
 
-        spawn_particles_burst(&line_particles, player.pos, player.vel, 128, 200, 1000, 0.2, 1.5, rl.RAYWHITE, drag = 5)
+        spawn_particles_burst(&line_trail_particles, player.pos, player.vel, 128, 200, 1000, 0.2, 1.5, rl.RAYWHITE, drag = 3)
         try_play_sound(&audio, audio.die)
     }
 }

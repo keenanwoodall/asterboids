@@ -56,20 +56,20 @@ tick_particles :: proc(using particle_system : ^ParticleSystem, dt: f32) {
 
 // Draw functions are called at the end of each frame by the game
 // Draws a particle system as particles
-draw_particles_as_pixels :: proc(using particle_system : ^ParticleSystem) {
+draw_particles_as_pixels :: proc(using particle_system : ^ParticleSystem, opacity : f32 = 1) {
     for p in particles[0:count] {
-        rl.DrawPixelV(p.pos, p.col)
+        rl.DrawPixelV(p.pos, rl.ColorAlpha(p.col, opacity))
     }
 }
 
 // Draw functions are called at the end of each frame by the game
 // Draws a particle system as lines
-draw_particles_as_lines :: proc(using particle_system : ^ParticleSystem) {
+draw_particles_as_lines :: proc(using particle_system : ^ParticleSystem, opacity : f32 = 1) {
     for p in particles[0:count] {
         alpha := math.pow((1 - p.tim / p.dur), .5)
         p1 := p.pos
         p2 := p.pos + rl.Vector2Rotate({0, 1} * p.siz.y, p.rot) * alpha
-        rl.DrawLineV(p1, p2, p.col * {1,1,1, u8((1 - alpha) * 255)})
+        rl.DrawLineV(p1, p2, rl.ColorAlpha(p.col, alpha * opacity))
     }
 }
 

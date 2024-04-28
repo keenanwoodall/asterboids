@@ -22,13 +22,6 @@ float gaussian1D(float x, float mean, float stddev) {
     return normalization * exp(exponent);
 }
 
-// Gaussian function for CRT glow effect
-float gaussianPeak(float x) {
-    float mean = 0.5;  // Center point
-    float stddev = 0.3;  // Narrower peak
-    return gaussian1D(x, mean, stddev);
-}
-
 // Reduce curvature strength to avoid excessive distortion
 const float curvatureStrength = 0.03;
 
@@ -48,7 +41,7 @@ void main() {
     vec4 input_color = texture(texture0, distortedUV) * colDiffuse;
 
     // Apply Gaussian peak for brightness adjustment
-    float brightnessAdjustment = gaussianPeak(fract(uv.y * renderHeight));
+    float brightnessAdjustment = gaussian1D(fract(uv.y * renderHeight), 0.5, 0.3);
 
     // Set the final color with adjusted brightness and distortion
     finalColor = vec4(clamp(input_color.rgb * brightnessAdjustment, 0, 1), 1.0);

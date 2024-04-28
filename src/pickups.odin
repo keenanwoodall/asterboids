@@ -60,7 +60,7 @@ unload_pickups :: proc(using pickups : ^Pickups) {
 
 // Tick functions are called every frame by the game.
 // Here we'll simulate the physics and player-pickup collision of each pickup
-tick_pickups :: proc(using game : ^Game, dt : f32) {
+tick_pickups :: proc(using game : ^Game) {
     if !game.player.alive do return
     
     // Loop over all the pickups
@@ -99,16 +99,16 @@ tick_pickups :: proc(using game : ^Game, dt : f32) {
             // The force starts at 0 when the pickup is first created and increases over time 
             // to add visual interest to pickups which are close to the player when they are first spawned.
             dir         := diff / dist
-            pickup.vel  += dir * PICKUP_ATTRACTION_FORCE * math.smoothstep(f32(0.5), 1, f32(pickup.time)) * dt;
+            pickup.vel  += dir * PICKUP_ATTRACTION_FORCE * math.smoothstep(f32(0.5), 1, f32(pickup.time)) * game_delta_time;
 
             // Once the player is close enough to a pickup for it to be attracted to the player it will always follow the player.
             // This prevents the annoying scenario where a pickup moves towards and overshoots the player, exceeding the attract radius
             pickup.following = true
         }
 
-        pickup.vel  *= 1 / (1 + PICKUP_DRAG * dt)   // Apply drag to the pickup
-        pickup.pos  += pickup.vel * dt              // Move the pickup along its velocity
-        pickup.time += dt                           // Increment the pickup lifetime
+        pickup.vel  *= 1 / (1 + PICKUP_DRAG * game_delta_time) // Apply drag to the pickup
+        pickup.pos  += pickup.vel * game_delta_time // Move the pickup along its velocity
+        pickup.time += game_delta_time              // Increment the pickup lifetime
 
         // Release the pickup if it has lived longer than the pickup lifetime
         if pickup.time > PICKUP_LIFETIME {
