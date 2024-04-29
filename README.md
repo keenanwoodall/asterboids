@@ -7,8 +7,8 @@ I ended up spending a bit more time on it because I was learning a lot and havin
 ## The Unity "Bubble"
 
 I have been a Unity developer for a bit, and as such I've grown accustomed to OOP and high(ish)-level programming. However over the last couple years I've started feel a bit jaded towards most of the code I read and write.
-It's not like I've been ignorant to other paradigms like data-oriented programming - I've seen many of the well-known [talks](https://youtu.be/rX0ItVEVjHc) and [video essays](https://youtu.be/QM1iUe6IofM?list=PLrWlVANGG-ij06UCpfdxQ-LBclsWUDLt-) that make a case against object-oriented programming.
-They were quite compelling to me, but I didn't feel like I could employ DOP in a meaningful way in Unity without going against the grain.
+It's not like I've been ignorant to other paradigms like data-oriented programming - I've seen many of the well-known [talks](https://youtu.be/rX0ItVEVjHc) and [video essays](https://youtu.be/QM1iUe6IofM?list=PLrWlVANGG-ij06UCpfdxQ-LBclsWUDLt-) which were quite compelling to me,
+but I didn't feel like I could employ DOP in a meaningful way in Unity without going against the grain.
 This frustration with Unity and OOP in conjunction with a blossoming interest in data-oriented programming led me to Odin!
 
 Now I must admit - I was afraid I would bounce off the language. However, to my surprise the exact opposite occured! Unlike my previous forays into other languages like C++ and Rust, I got completely hooked by Odin.
@@ -23,19 +23,51 @@ Asterboids is a top-down space shooter where the player fights off waves of enem
 Enemies drop orbs which can be picked up to gain health and xp. When the player levels up they can pick a perk that affects the gameplay in some way, like you'd find in a rogue-like.
 
 This project might not be a shining example of how to program in Odin, but I was still really happy with how straightfoward its development felt. It's a simple game, and so is the codebase!
-With that in mind, this might be a good resource for other newbies who are looking into Odin and want to poke around a mostly complete project.
+With that in mind, this might be a good resource for other newbies who are looking into Odin so I've left thorough comments breaking most of the codebase down.
 
-When working on the game, there were three things I thought were particularly satisfying to develop: the smoke trails, enemy flocking simulation and rogue-like "modifier" architecture.
+Now lets jump behind the scenes. When working on the game, there were three things I thought were particularly satisfying to develop: the smoke trails, enemy flocking simulation and rogue-like "modifier" architecture.
 
 ### Smoke Trails
-TODO: like Control
+It started as me just wanting to draw a trail behind the player when they dash. An approach I've enjoyed using for 2D trails in the past is to draw the objects that should have a trail into a render texture. 
+Rather than clearing the render texture each frame, it is drawn into _another_ render texture using a shader that subtracts a little bit of alpha from the entire image. Using this double-buffered render texture aproach lets you create post-processing-like
+effects which accumulate over time.
+![asterboid_TJDXf7NdIz](https://github.com/keenanwoodall/asterboid/assets/9631530/da811728-5787-479e-8934-015611e05447)
+
+I wanted to see if I could add a bit more juice to the effect, and recalled two interesting references:
+1. This [tweet](https://x.com/SoerbGames/status/1570773880444448773) by a game developer showing their screen-space smoke sim
+2. The [vfx breakdown](https://youtu.be/6-SRtd9NTvw?t=66) of Remedy's Control, which showcases some fancy re-projection tech for their pseudo-3D smoke sim
+
+I went for a very simple approach that's similar to the technique used in the first link. In addition to fading out the trail map over time, I add a little bit of displacement to where each pixel is sampled using noise.
+This essentially "moves" pixels in the trail map over time using a noise function as a flow field. I first tried using 2D gradient noise for the displacement, but the results were awkward. Rather than flowing, the pixels just awkwardly rolled along the flow map until they hit a valley and got stuck.
+I opted for using a 1d noise output and mapping it between 0 and TAU to represent an angle. Then each noise sample represents the rotation of a vector used to displace the pixel sample. This helped the pixels move more naturally over time.
+```glsl
+// Use the noise float as an angle to rotate a unit vector
+float noise = snoise(noise_coord);
+vec2 noiseDir = rotate(vec2(0, 1), noise * PI * 2);
+
+// The "lifetime" of the pixel will be its alpha, since the longer it's alive the lower its alpha should be
+float lifetime = 1 - texture(texture0, uv).a + 0.05;
+// We'll use the "lifetime" to approximate drag by having the displacement strength lessen
+uv += noiseDir * 0.05 * pow(lifetime, 10) * dt;
+
+vec4 new_color = texture(texture0, uv);
+```
+This is what the trail effect looks like with the displacement applied. The flow map is visualized on the right of the screen.
+![asterboid_T1Zd1tq9KA](https://github.com/keenanwoodall/asterboid/assets/9631530/d8cac08e-bcbf-4acf-9eab-d370d856d60f)
+
+As a final step, I wanted the smoke to disperse over time. Rather than adding a blur pass, I'm simply setting the filter-mode of the trail render-texture to BILINEAR. This allows for a cheap blur effect, though I think the rate it blurs over time is tied to framerate which isn't ideal.
+![asterboid_sxz7xfOAJg](https://github.com/keenanwoodall/asterboid/assets/9631530/294ee894-ab22-46dc-85ba-4ef732b4b498)
+
+One thing I think would be cool to add is a separate flow map. Right now the forces are calculated procedurally, but if instead I stored forces in a render texture, I could "draw" forces into the flow map. This would be useful for things like the player's thruster, which draw a force behind the player that pushes the 
+trail pixels away from the player. It could also allow for events like explosions to render a radial force into the flow map which repulses the nearby trail map pixels away from the explosion.
 
 ### Flocking Simulation
-TODO: n^2 to hash grid to job system
+TODO: n^2 to hash grid to job system to checkerboard jobs?
 
 ### Rogue-like System
 TODO: more pickups = more projectiles = more pickups
 
+### RayGUI Layout
 
 
 ## Learning Odin
