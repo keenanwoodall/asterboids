@@ -73,10 +73,10 @@ Archetypes := map[EnemyArchetype]Archetype {
     .Small = { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 35, spd = 1, loot = 1, color = rl.YELLOW },
     .Medium = { size = ENEMY_SIZE * 1.5, hp = 2, dmg = 50, spd = 1, loot = 3, color = rl.ORANGE,
         // Medium enemies roll a dice for whether they will shoot once per second
-        rate = 1,
+        rate = .5,
         action = proc(enemy : ^Enemy, game : ^Game) {
             // Chance that enemy shoots
-            if rand.float32_range(0, 1) < 0.3 do return
+            if rand.float32_range(0, 1) < 0.5 do return
             enemy_speed := linalg.length(enemy.vel)
             // Enemy must be moving
             if enemy_speed > 0 {

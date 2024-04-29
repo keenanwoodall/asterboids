@@ -145,10 +145,14 @@ void main() {
     // compensate for aspect ratio
     noiseDir.x /= float(res.x) / float(res.y);
 
-    // The "lifetime" of the pixel will be its alpha, since the longer it's alive the lower its alpha should be
-    float lifetime = 1 - texture(texture0, uv).a ;
-    // We'll use the "lifetime" to approximate drag by having the displacement strength lessen
-    uv += noiseDir * 0.2 * pow(lifetime, 10) * dt;
+    // The "lifetime" of the current pixel will be 1-alpha, since the longer it's alive the lower its alpha should be.
+    float lifetime = 1 - texture(texture0, uv).a;
+    // Offset the uv by the noise direction.
+    // We'll use the pixel "lifetime" (again, just the alpha) plugged into a power curve to approximate drag.
+    // This way low opacity pixels get moved less.
+    float drag = pow(lifetime, .7);
+    float force = 0.1;
+    uv += noiseDir * force * drag * dt;
 
     vec4 input = texture(texture0, uv);
 

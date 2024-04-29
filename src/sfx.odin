@@ -18,19 +18,19 @@ Audio :: struct {
     music : rl.Music,
     tutorial : rl.Music,
     damage : rl.Sound,
-    die : rl.Sound,
+    die : rl.Sound,             // played when the player dies
     laser : rl.Sound,
     impact : rl.Sound,
     deflect : rl.Sound,
     dash : rl.Sound,
     pickup : rl.Sound,
     explosion : rl.Sound,
-    player_explosion : rl.Sound,
+    player_explosion : rl.Sound, // also played when the player dies
     collect_xp : rl.Sound,
     collect_hp : rl.Sound,
     level_up : rl.Sound,
     level_up_conf : rl.Sound,
-    thrust : rl.Music, // Thrust is loaded as music so that it loops when played.
+    thrust : rl.Music,          // Thrust is loaded as music so that it loops when played.
                                 // If there's a way to loop sounds this is unnecessary.
 
     sound_history   : map[rl.Sound]SoundHistory
@@ -67,6 +67,7 @@ load_audio :: proc(using audio : ^Audio) {
     rl.SetSoundVolume(damage, 0.3)
     rl.SetSoundVolume(dash, 0.2)
     rl.SetSoundVolume(die, 0.5)
+    rl.SetSoundVolume(player_explosion, 0.5)
     rl.SetSoundVolume(deflect, 0.15)
     rl.SetSoundVolume(explosion, 0.2)
     rl.SetSoundVolume(impact, 0.2)

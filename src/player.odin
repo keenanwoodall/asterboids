@@ -153,7 +153,7 @@ tick_player :: proc(using game : ^Game) {
                 min_speed = dash_speed * 0.1,
                 max_speed = dash_speed * 0.4,
                 min_lifetime = 0.1,
-                max_lifetime = 1.6,
+                max_lifetime = 1.2,
                 color = rl.SKYBLUE, // Sky blue + some brighness
                 angle = linalg.to_radians(f32(10)),
                 drag = 2,
@@ -233,10 +233,10 @@ draw_player_trail :: proc(using game : ^Game) {
     if speed > 200 || dash_speed > 1 {
         corners = get_player_corners(player)
         alpha := u8(math.lerp(f32(140), 240, math.smoothstep(f32(0.1), 10, dash_speed)))
-        rl.DrawPixelV(corners[0], {255, 255, 255, alpha})
-        rl.DrawPixelV(corners[1], {255, 255, 255, alpha})
-        rl.DrawPixelV(corners[2], {255, 255, 255, alpha})
-        rl.DrawPixelV(get_player_base(player), {255, 255, 255, alpha})
+        rl.DrawRectangleV(corners[0], {2, 2}, {255, 255, 255, alpha})
+        rl.DrawRectangleV(corners[1], {2, 2}, {255, 255, 255, alpha})
+        rl.DrawRectangleV(corners[2], {2, 2}, {255, 255, 255, alpha})
+        rl.DrawRectangleV(get_player_base(player), {2, 2}, {255, 255, 255, alpha})
     }
 }
 

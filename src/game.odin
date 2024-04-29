@@ -172,10 +172,10 @@ draw_game :: proc(using game : ^Game) {
         draw_player_trail(game)
         draw_particles_as_lines(&line_trail_particles)
         // eh go ahead and draw the other particles to the trail map as well :P. just with low opacity
-        draw_particles_as_pixels(&pixel_particles, 0.3)
-        draw_particles_as_lines(&line_particles, 0.3)
-        draw_projectiles(&projectiles, 0.3)
-        draw_projectiles(&enemy_projectiles, 0.3)
+        draw_particles_as_pixels(&pixel_particles, 0.5)
+        draw_particles_as_lines(&line_particles, 0.5)
+        draw_projectiles(&projectiles, 0.5)
+        draw_projectiles(&enemy_projectiles, 0.5)
         rl.EndTextureMode()
 
         swap(&trail_render_target_b, &trail_render_target_a)
@@ -186,8 +186,8 @@ draw_game :: proc(using game : ^Game) {
         rl.BeginTextureMode(render_target_a)
         defer rl.EndTextureMode()
         
+        // 
         rl.DrawRectangleGradientV(0, 0, rl.GetScreenWidth(), rl.GetScreenHeight(), {10, 3, 16, 255}, {5, 10, 20, 255})
-        rl.ClearBackground(rl.BLACK)
         draw_stars(&stars)
 
         // Draw trails over the background, but before everything else

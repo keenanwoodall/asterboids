@@ -1,5 +1,5 @@
 // This file holds utility functions for making gui layouts with rects
-// Raylib does not have an automatic layout system, unlike many immediate-mode gui library.
+// Raylib does not have an automatic layout system, unlike many immediate-mode gui libraries.
 // These functions provide a nice middle-ground between manual and automatic layouts
 
 package game
