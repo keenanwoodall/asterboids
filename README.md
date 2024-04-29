@@ -8,7 +8,7 @@ https://github.com/keenanwoodall/asterboid/assets/9631530/bce23a20-0bc5-40b5-a93
 
 ## Introduction
 
-I have been a Unity developer for a bit, and as such I've grown accustomed to OOP and high(ish)-level programming. However over the last couple years I've started feel a bit jaded towards most of the code I read and write.
+I have been a Unity developer for a bit, and as such I've grown accustomed to OOP and high(ish)-level programming. However over the last couple years I've started feeling a bit jaded towards a lot of the code I read and write.
 It's not like I've been ignorant to other paradigms like data-oriented programming - I've seen many of the well-known [talks](https://youtu.be/rX0ItVEVjHc) and [video essays](https://youtu.be/QM1iUe6IofM?list=PLrWlVANGG-ij06UCpfdxQ-LBclsWUDLt-) which were quite compelling to me - 
 but I didn't feel like I could employ DOP in a meaningful way in Unity without going against the grain.
 This frustration with Unity and OOP in conjunction with a blossoming interest in data-oriented programming led me to Odin!
