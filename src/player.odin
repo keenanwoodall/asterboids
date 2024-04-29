@@ -13,8 +13,8 @@ PLAYER_SIZE                 :: 12
 PLAYER_TURN_SPEED           :: 50
 PLAYER_TURN_DRAG            :: 5
 PLAYER_ACCELERATION         :: 350
-PLAYER_BRAKING_ACCELERATION :: 3
-PLAYER_THRUST_EMIT_DELAY    :: 0.02
+PLAYER_BRAKING_ACCELERATION :: 3        // Force multiplier when thrusting against current velocity (braking.) This basically adds drifting 🤘
+PLAYER_THRUST_EMIT_DELAY    :: 0.02     // Note: would be nice to express this as a rate over time instead
 PLAYER_THRUST_VOLUME_ATTACK :: 10
 PLAYER_MAX_SPEED            :: 400
 
@@ -39,10 +39,11 @@ Player :: struct {
     alive       : bool,         // Is the player currently alive?
     knockback   : f32,          // Force applied to player when hit by enemy
 
-    on_emit_thruster_particles : ActionStack(bool, Game),
+    on_tick_player_thruster_particles : ActionStack(bool, Game),
 
     thruster_volume         : f32,
-    last_thruster_emit_tick : time.Tick, // Note: this should be changed to use game time
+    thruster_particle_timer : Timer,
+    dash_particle_timer     : Timer, 
     last_damage_time        : f64,       // The last time the player was damaged
 }
 
@@ -70,20 +71,20 @@ init_player :: proc(using player : ^Player) {
     thruster_volume = 0
     last_damage_time = -1000
 
-    init_action_stack(&on_emit_thruster_particles)
+    thruster_particle_timer = { rate = 100 }
+    dash_particle_timer = { rate = 150 }
+
+    init_action_stack(&on_tick_player_thruster_particles)
 }
 
 unload_player :: proc(using player : ^Player) {
-    unload_action_stack(&on_emit_thruster_particles)
+    unload_action_stack(&on_tick_player_thruster_particles)
 }
 
 tick_player :: proc(using game : ^Game) {
     width   := f32(rl.rlGetFramebufferWidth())
     height  := f32(rl.rlGetFramebufferHeight())
 
-    thruster_emit_time_elapsed := time.duration_seconds(time.tick_since(player.last_thruster_emit_tick))
-    can_emit := thruster_emit_time_elapsed >= PLAYER_THRUST_EMIT_DELAY
-        
     thruster_target_volume : f32 = 0
 
     // Movement
@@ -102,7 +103,7 @@ tick_player :: proc(using game : ^Game) {
         if thrust {
             dir := get_player_dir(player)
 
-            // To help the controls feel more responsive, we'll calculate how much the player is braking be comparing the direction they're moving to
+            // To help the controls feel more responsive, we'll calculate how much the player is braking by comparing the direction they're moving to
             // the direction they're thrusting. We can use this to apply more acceleration when braking
             brake_factor := 1 - (linalg.dot(player.vel / (linalg.length(player.vel) + 0.001), dir) / 2 + 0.5) // 1 = braking, 0 = accelerating
             acceleration := player.acc * (1 + brake_factor * PLAYER_BRAKING_ACCELERATION) 
@@ -110,16 +111,52 @@ tick_player :: proc(using game : ^Game) {
             player.vel += dir * acceleration * game_delta_time
 
             thruster_target_volume += 1
-            if can_emit {
-                should_emit := true
-                execute_action_stack(player.on_emit_thruster_particles, &should_emit, game)
-                if should_emit do emit_thruster_particles(&player, &line_particles, -dir, acceleration)
+
+            should_emit := true // this will probably never be false
+            execute_action_stack(player.on_tick_player_thruster_particles, &should_emit, game)
+            if should_emit {
+                // Spawn thruster particles
+                emit_count  := tick_timer(&player.thruster_particle_timer, game_delta_time)
+
+                spawn_particles_direction(
+                    particle_system = &line_particles, 
+                    center          = get_player_base(player),
+                    direction       = -dir, 
+                    count           = emit_count, 
+                    min_speed       = 200,
+                    max_speed       = 1000,
+                    min_lifetime    = 0.1,
+                    max_lifetime    = 0.5,
+                    size            = { 1, 10 },
+                    color           = rl.Color{ 102, 191, 255, 50 },
+                    angle           = .2,
+                    drag            = 5,
+                )
             }
         }
 
         if dash {
             player.dash_vel = get_player_dir(player) * player.dash_spd
             try_play_sound(&audio, audio.dash)
+        }
+
+        dash_speed := linalg.length(player.dash_vel)
+
+        if dash_speed > 50 {
+            emit_count := tick_timer(&player.dash_particle_timer, game_delta_time)
+            spawn_particles_direction(&line_particles, 
+                center = get_player_base(player),
+                direction = -get_player_dir(player),
+                count = emit_count,
+                min_speed = 500,
+                max_speed = 800,
+                min_lifetime = .1,
+                max_lifetime = .3,
+                color = { 102 + 30, 191 + 50, 255, 255 }, // Sky blue + some brighness
+                angle = linalg.to_radians(f32(5)),
+                drag = 3,
+                size = { 1, 30 }
+            )
         }
     }
 
@@ -220,26 +257,6 @@ get_player_corners :: proc(using player : Player, scale : f32 = 1) -> [3]rl.Vect
         corners[i] += pos
     }
     return corners
-}
-
-@(private) 
-emit_thruster_particles :: proc(using player : ^Player, ps : ^ParticleSystem, dir : rl.Vector2, acceleration : f32) {
-    player.last_thruster_emit_tick = time.tick_now()
-    norm_dir := linalg.normalize(dir)
-    spawn_particles_direction(
-        particle_system = ps, 
-        center          = get_player_base(player^),
-        direction       = norm_dir, 
-        count           = int(0.0035 * acceleration) + 1, 
-        min_speed       = 200,
-        max_speed       = 1000,
-        min_lifetime    = 0.1,
-        max_lifetime    = 0.5,
-        size            = { 1, 10 },
-        color           = rl.ORANGE,
-        angle           = .2,
-        drag            = 5,
-    )
 }
 
 // Returns the distance to the closest enemy in the neighboring cells, if any
