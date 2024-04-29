@@ -54,7 +54,9 @@ tick_player_enemy_collision :: proc(using game : ^Game) {
         player.alive = false
         player.hth = 0
 
-        spawn_particles_burst(&line_trail_particles, player.pos, player.vel, 128, 200, 1000, 0.2, 1.5, rl.RAYWHITE, drag = 3)
+        spawn_particles_triangle_segments(&line_trail_particles, get_player_corners(player), rl.RAYWHITE, player.vel, 0.4, 5.0, 50, 150, 2, 2, 3)
+        spawn_particles_burst(&line_trail_particles, player.pos, player.vel, 128, 200, 1200, 0.2, 1.5, rl.RAYWHITE, drag = 3)
+        spawn_particles_burst(&line_particles, player.pos, player.vel, 64, 100, 1500, 0.3, 1.5, rl.SKYBLUE, drag = 2)
         try_play_sound(&audio, audio.die)
     }
 }
