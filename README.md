@@ -17,8 +17,6 @@ Now I must admit - I was afraid I would bounce off the language. However, to my 
 
 The following breakdown will be composed of two different parts: an overview of my process learning Odin as a Unity developer, and a breakdown of the project itself.
 
-
-
 ## Project Breakdown
 
 Asterboids is a top-down space shooter where the player fights off waves of enemies from their spaceship. The enemies move in bird-like flocks, hence the name Aster*boids*.
@@ -78,8 +76,9 @@ for boid in boids
   flock(boid, boids) // alignment, cohesion, and separation forces
 ```
 This worked, but I couldn't have many boids in the simulation before the frame-rate tanked.
-To speed it up I wanted to do some sort of spatial partitioning. I had recently watched a cool [video](https://youtu.be/oewDaISQpw0) on optimization using spatial hashgrids and it seemed like a basic implementation and usage would be quite straightforward, so I wrote my own.
+To speed it up I wanted to do some sort of spatial partitioning. I had recently watched a cool [video](https://youtu.be/oewDaISQpw0) on optimization using spatial hashgrids, and it seemed like a basic implementation would be quite straightforward, so I wrote my own.
 My hashgrid is basically just a map of 2d coordinates to dynamic arrays of arbitrary data - with some accompanying utility methods to get/set cell data.
+In the case of the boids, each grid cell stores the indices of the enemies located within.
 ```js
 HGrid :: struct($T : typeid) {
     cells      : map[int2][dynamic]T,
