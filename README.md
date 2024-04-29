@@ -142,31 +142,37 @@ Modifier :: struct {
 Each modifier is authored in a big map and it's quite easy to throw together interesting modifiers
 ```js
 ModifierChoices := [ModifierType]Modifier {
-    .ProjectileDelay = {
-        type        = .ProjectileDelay,
-        name        = "Itchy Finger",
-        description = "Player shoots more rapidly",
-        is_valid    = proc(game : ^Game) -> bool { return game.weapon.delay > 0.05 },
-        on_choose   = proc(game : ^Game) { game.weapon.delay *= 0.8 }
-    },
-    .OverflowBarrage = {
-      type        = .OverflowBarrage,
-      name        = "Overflow Barrage",
-      description = "When at full HP, health pickups are converted into projectiles",
-      single_use  = true,
-      on_choose   = proc(game : ^Game) { 
-          append(
-              &game.pickups.hp_pickup_actions, 
-              proc(game : ^Game, pickup : ^Pickup) {
-                  if game.player.hth >= game.player.max_hth - 1 {
-                      try_play_sound(&game.audio, game.audio.laser)
-                      shoot_weapon(&game.projectiles, game.weapon, ...)
-                  }
-              }
-          )
-      }
-  } ...
+  .RangeFinder = {
+    type        = .RangeFinder,
+    name        = "Range Finder",
+    description = "Installs a laser sight onto the player ship",
+    single_use  = true,
+    on_choose   = proc(game : ^Game) { 
+        add_action(&game.weapon.on_draw_weapon, proc(draw : ^bool, game : ^Game) {
+            rl.DrawLineV(game.player.pos, rl.GetMousePosition(), {255, 0, 0, 80})
+        })
+     }
+  },
+  .OverflowBarrage = {
+    type        = .OverflowBarrage,
+    name        = "Overflow Barrage",
+    description = "When at full HP, health pickups are converted into projectiles",
+    single_use  = true,
+    on_choose   = proc(game : ^Game) { 
+      append(
+        &game.pickups.hp_pickup_actions, 
+        proc(game : ^Game, pickup : ^Pickup) {
+          if game.player.hth >= game.player.max_hth - 1 {
+            try_play_sound(&game.audio, game.audio.laser)
+            shoot_weapon(&game.projectiles, game.weapon, ...)
+          }
+        }
+      )
+    }
+}...
 ```
+> Range Finder and Overflow Barrage active in-game:
+![asterboid_HTwDP8IZEk](https://github.com/keenanwoodall/asterboid/assets/9631530/7e471900-4d49-467c-b46f-7920d817904d)
 
 ### Summary
 
