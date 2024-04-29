@@ -73,7 +73,7 @@ init_player :: proc(using player : ^Player) {
     last_damage_time = -1000
 
     thruster_particle_timer = { rate = 100 }
-    thruster_proj_timer = { rate = 50 }
+    thruster_proj_timer = { rate = 10 }
     dash_particle_timer = { rate = 100 }
 
     init_action_stack(&on_tick_player_thruster_particles)

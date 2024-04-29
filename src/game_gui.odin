@@ -1,5 +1,7 @@
 package game
 
+import "core:fmt"
+import "core:strings"
 import rl "vendor:raylib"
 
 // Draw functions are called at the end of each frame by the game.
@@ -19,4 +21,20 @@ draw_game_gui :: proc(using game : ^Game) {
     xp_width        := f32(xp_bar_width) * (f32(leveling.xp) / f32(target_xp))
     rl.DrawRectangle(xp_bar_x, xp_bar_y, i32(xp_width), 8, rl.YELLOW)
     rl.DrawRectangleLines(xp_bar_x, xp_bar_y, i32(xp_bar_width), 8, rl.WHITE)
+
+    if !player.alive {
+        label := strings.clone_to_cstring(
+            fmt.tprintf(
+                "GAME OVER\n\nWave: %i\nLevel: %i\nEnemies Killed: %i\n\n",
+                waves.wave_idx,
+                leveling.lvl,
+                enemies.kill_count,
+            ), 
+            context.temp_allocator,
+        )
+        font_size : i32 = 20
+        rect := centered_label_rect(screen_rect(), label, font_size)
+
+        rl.DrawText(label, i32(rect.x), i32(rect.y + rect.height / 2 - f32(font_size) / 2), font_size, rl.RED)
+    }
 }

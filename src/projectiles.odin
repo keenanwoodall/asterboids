@@ -49,6 +49,7 @@ tick_projectiles :: proc(using projectiles : ^Projectiles, dt : f32) {
     }
 }
 
+// Handles projectile homing behavior which is unique to player projectiles.
 tick_player_projectiles :: proc(using projectiles : ^Projectiles, enemies : Enemies, dt : f32) {
     if homing_dist > 0 {
         #no_bounds_check for &proj, proj_idx in projectiles.instances[0:count] {

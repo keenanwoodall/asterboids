@@ -62,7 +62,7 @@ tick_player_enemy_collision :: proc(using game : ^Game) {
 }
 
 // Tick functions are called every frame by the game.
-// This checks whether the player is overlapping any enemies, and deals damage to the player if so.
+// This checks whether the player is overlapping any enemy projectiles, and deals damage/knockback to the player if so.
 tick_player_projectile_collision :: proc(using game : ^Game) {
     if !player.alive do return
 

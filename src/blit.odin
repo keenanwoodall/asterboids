@@ -1,3 +1,5 @@
+// Utility class for drawing from one render texture to another with a shader
+
 package game
 
 import "core:fmt"

@@ -1,4 +1,5 @@
 // A simple structure that lets you stack functions that modify an input value.
+// These are used to provide entry points for level-up modifiers to affect gameplay parameters.
 package game
 
 ActionStack :: struct($Value, $Context : typeid) {

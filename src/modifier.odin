@@ -31,8 +31,8 @@ ModifierType :: enum {
     RetrofireOverdrive,
 }
 
-// A Modifier is a thing that can be applied (chosen) to the game state
-// It can do anything, but currently is used for level ups
+// A Modifier is a thing that can be applied to the game state
+// It can do anything, but currently is used for level-up choices.
 Modifier :: struct {
     name        : cstring,                      // Name of the modifier. Shown in the level up gui
     description : cstring,                      // Description of the modifier. Shown in the level up gui
@@ -158,8 +158,9 @@ ModifierChoices := [ModifierType]Modifier {
         single_use  = true,
         on_choose   = proc(game : ^Game) { 
             add_action(&game.player.on_tick_player_thruster_particles, proc(emit : ^bool, game : ^Game) {
+                game.player.thruster_proj_timer.rate = 1 / (game.weapon.delay + 0.01) * 0.5
                 for i : int = 0; i < tick_timer(&game.player.thruster_proj_timer, game.game_delta_time); i+= 1 {
-                    shoot_weapon(&game.projectiles, game.weapon, get_player_base(game.player), -get_player_dir(game.player), color = rl.Color{ 255, 161, 0, 100 }, spread_factor = 0, spread_bias = 0.3)
+                    shoot_weapon(&game.projectiles, game.weapon, get_player_base(game.player), -get_player_dir(game.player), color = rl.SKYBLUE, spread_factor = 0, spread_bias = 0.3)
                 }
             })
         }
