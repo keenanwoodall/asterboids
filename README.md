@@ -77,7 +77,7 @@ Each enemy then calculates the average velocity, average position and distances 
 for boid in boids
   flock(boid, boids) // alignment, cohesion, and separation forces
 ```
-This worked, but I couldn't have more than a few hundred boids in the simulation before the frame-rate tanked.
+This worked, but I couldn't have many boids in the simulation before the frame-rate tanked.
 To speed it up I wanted to do some sort of spatial partitioning. I had recently watched a cool [video](https://youtu.be/oewDaISQpw0) on optimization using spatial hashgrids and it seemed like a basic implementation and usage would be quite straightforward, so I wrote my own.
 My hashgrid is basically just a map of 2d coordinates to dynamic arrays of arbitrary data - with some accompanying utility methods to get/set cell data.
 ```js
