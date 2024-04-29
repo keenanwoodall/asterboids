@@ -122,7 +122,7 @@ run_jobs()
 ```
 
 ### Misc
-The smoke sim and flocking sim were my favorite things to implement, but there were a few less notable bits that I enjoyed putting together. I built a little `layout.odin` utility file to help split, pad, center and subdivide rects to compensate for Raylib GUI system which I found a bit lacking.
+The smoke sim and flocking sim were my favorite things to implement, but there were a few less notable bits that I enjoyed putting together. I built a little `layout.odin` utility file to help split, pad, center and subdivide rects to compensate for Raylib's layout system, or lack thereof.
 Starting with a single rect and chopping it up into bits was actually a pretty solid way to layout UI! It was way less cludgy than I expected. I think one thing that really helped is how arrays can be "value types" in Odin. In C#, arrays are almost always allocated on the heap which I think subconsiously deterred me from trying something this simple in the past.
 
 Another thing I enjoyed was how the level-up modifiers ended up working. Each modifier is a struct that stores a function for ensuring the modifier is valid given the current game state, and another for actually applying it to the game-state
