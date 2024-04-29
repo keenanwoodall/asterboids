@@ -4,7 +4,7 @@ I ended up spending a bit more time on it because I was learning a lot and havin
 
 ---
 
-## The Unity "Bubble"
+## Introduction
 
 I have been a Unity developer for a bit, and as such I've grown accustomed to OOP and high(ish)-level programming. However over the last couple years I've started feel a bit jaded towards most of the code I read and write.
 It's not like I've been ignorant to other paradigms like data-oriented programming - I've seen many of the well-known [talks](https://youtu.be/rX0ItVEVjHc) and [video essays](https://youtu.be/QM1iUe6IofM?list=PLrWlVANGG-ij06UCpfdxQ-LBclsWUDLt-) which were quite compelling to me,
@@ -25,7 +25,7 @@ Enemies drop orbs which can be picked up to gain health and xp. When the player 
 This project might not be a shining example of how to program in Odin, but I was still really happy with how straightfoward its development felt. It's a simple game, and so is the codebase!
 With that in mind, this might be a good resource for other newbies who are looking into Odin so I've left thorough comments breaking most of the codebase down.
 
-Now lets jump behind the scenes. When working on the game, there were three things I thought were particularly satisfying to develop: the smoke trails, enemy flocking simulation and rogue-like "modifier" architecture.
+Now lets jump behind the scenes. When working on the game, there were two things I thought were particularly satisfying to develop: the smoke trails and enemy flocking simulation,
 
 ### Smoke Trails
 It started as me just wanting to draw a trail behind the player when they dash. An approach I've enjoyed using for 2D trails in the past is to draw the objects that should have a trail into a render texture. 
@@ -39,7 +39,7 @@ I wanted to see if I could add a bit more juice to the effect, and recalled two 
 
 I went for a very simple approach that's similar to the technique used in the first link. In addition to fading out the trail map over time, I add a little bit of displacement to where each pixel is sampled using noise.
 This essentially "moves" pixels in the trail map over time using a noise function as a flow field. I first tried using 2D gradient noise for the displacement, but the results were awkward. Rather than flowing, the pixels just awkwardly rolled along the flow map until they hit a valley and got stuck.
-I opted for using a 1d noise output and mapping it between 0 and TAU to represent an angle. Then each noise sample represents the rotation of a vector used to displace the pixel sample. This helped the pixels move more naturally over time.
+I opted for using a 1d noise output and mapping it between 0 and TAU to represent an angle. Then each noise sample represents the rotation of a vector used to displace the pixel sample. This helped the pixels move more fluidly, though I imagine it could look even better with a different type of noise.
 ```glsl
 // Use the noise float as an angle to rotate a unit vector
 float noise = snoise(noise_coord);
@@ -58,18 +58,71 @@ This is what the trail effect looks like with the displacement applied. The flow
 As a final step, I wanted the smoke to disperse over time. Rather than adding a blur pass, I'm simply setting the filter-mode of the trail render-texture to BILINEAR. This allows for a cheap blur effect, though I think the rate it blurs over time is tied to framerate which isn't ideal.
 ![asterboid_sxz7xfOAJg](https://github.com/keenanwoodall/asterboid/assets/9631530/294ee894-ab22-46dc-85ba-4ef732b4b498)
 
-One thing I think would be cool to add is a separate flow map. Right now the forces are calculated procedurally, but if instead I stored forces in a render texture, I could "draw" forces into the flow map. This would be useful for things like the player's thruster, which draw a force behind the player that pushes the 
-trail pixels away from the player. It could also allow for events like explosions to render a radial force into the flow map which repulses the nearby trail map pixels away from the explosion.
+Right now the forces are calculated on the fly via procedural noise, but if instead I stored forces in a render texture, I could "draw" arbitrary forces into the flow map. This would be useful for things like the player's thruster, which could add a force behind the player that pushes the 
+trail pixels away. It could also allow for events like explosions; to render a radial force into the flow map which repulses the nearby trail map pixels away from the source of the explosion.
 
 ### Flocking Simulation
-TODO: n^2 to hash grid to job system to checkerboard jobs?
+Considering how straightforward a wave-based space shooter is, I wanted to find an interesting way for enemies to move. I'm particularly drawn towards simulations and generative art whose logic is derived from simple rules. 
+When thinking about how the enemies would be designed I considered Cellular Automata, [Particle Life](https://youtu.be/p4YirERTVF0) and Boids - all of which are mesmerizing in their own way. Boids seemed like the easiest thing to use for enemy movement, so I went with that - tho I think Particle Life could be a really cool way to model enemy behavior in a different game.
 
-### Rogue-like System
-TODO: more pickups = more projectiles = more pickups
+My take on boids is not novel by any means, but I thought the process with Odin was particularly pleasant compared to how it could have gone in Unity.
+I started with a naive n² implementation where each enemy checks each other enemy to find its neighbors.
+Each enemy then calculates the average velocity, average position and distances of its neighbors, so that the enemy can steer itself using the three boid behaviors: alignment, cohesion and separation.
+```js
+// Pseudo-code
+for boid in boids
+  flock(boid, boids) // alignment, cohesion, and separation forces
+```
+This worked, but I couldn't have more than a few hundred boids in the simulation before the frame-rate tanked.
+To speed it up I wanted to do some sort of spatial partitioning. I considered something more complicated like a quad-tree, but in my experience those can be more trouble than they're worth.
+I recently watched a cool [video](https://youtu.be/oewDaISQpw0) on optimization using spatial hashgrids. It seemed like a basic implementation and usage would be quite straightforward, so I wrote my own.
+My hashgrid is basically just a map of 2d coordinates to dynamic arrays of arbitrary data - with some accompanying utility methods to get/set cell data.
+```js
+HGrid :: struct($T : typeid) {
+    cells      : map[int2][dynamic]T,
+    cell_size  : f32,
+    min, max   : [2]int,
+}
+```
+I imagine this is not optimal, but it was easy to make and it definitely sped things up!
+Now that boids knew what cell they were in, they only had to check for boids in neighboring cells.
+```js
+// populate grid
+for boid in boids
+  insert(grid, boid)
 
-### RayGUI Layout
+// iterate over boids
+for boid in boids
+  // iterate over boids in neighboring cells
+  for nearby_boids in nearby_cells(grid, boid.position)
+    // calculate steering forces to nearby boids
+    flock(boid, nearby_boids)
+```
 
+https://github.com/keenanwoodall/asterboid/assets/9631530/ac757855-8855-454b-b0d0-b01ceec85df0
 
+This was a lot faster, but still not perfect. I was interested giving multithreading a go, and it seemed like an easy speed things up.
+I really like Unity's job-system, so I was curious if anything similar existed for Odin. After some googling I found a [job-system](https://github.com/jakubtomsu/jobs) package on GitHub and threw it in my project.
+I was a bit intimidated to dive in, but after a bunch of crashes I finally got it working! Rather than processing the simulation boid by boid as I was before, the boids are now simulated cell by cell.
+Each cell is simulated in its own job, and the job-system spreads that work across multiple threads automatically.
+```js
+// Pseudo-code
+for boid in boids
+  insert(grid, boid)
+
+for cell in grid
+  add_job(() -> {
+    for boid in cell
+      flock(boid, cell)
+  })
+
+run_jobs()
+```
+
+### Summary
+The smoke sim and flocking sim were my favorite things to implement, but there were a few less notable bits that I enjoyed putting together. I built a little collection of utility functions to split, pad, center and subdivide rects to compensate for Raylib GUI system which I found a bit lacking.
+Starting with a single rect and chopping it up into bits was actually a pretty solid way to layout UI. I'm used to automatic imgui layouts, or manually authoring them in an editor like Unity, so I was a little surprised at how _not_ awful laying out the rects was with my handful of utility functions.
+I think one thing that really helped was how arrays can be "value types" in Odin. In C# arrays are almost always allocated on the heap which I think subconsiously deterred me from trying something this simple in the past.
 ## Learning Odin
 ### First Steps
 
