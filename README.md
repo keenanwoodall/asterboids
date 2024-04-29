@@ -2,18 +2,20 @@
 A very simple space-shooter with rogue-like elements. Loosely inspired by the classic arcade game, Asteroids. The game was meant to be a week-long project, with the goal of learning the [Odin](https://odin-lang.org/) language and data-oriented-programming.
 I ended up spending a bit more time on it because I was learning a lot and having so much fun!
 
+https://github.com/keenanwoodall/asterboid/assets/9631530/bce23a20-0bc5-40b5-a939-a0e5d32bfbc7
+
 ---
 
 ## Introduction
 
 I have been a Unity developer for a bit, and as such I've grown accustomed to OOP and high(ish)-level programming. However over the last couple years I've started feel a bit jaded towards most of the code I read and write.
-It's not like I've been ignorant to other paradigms like data-oriented programming - I've seen many of the well-known [talks](https://youtu.be/rX0ItVEVjHc) and [video essays](https://youtu.be/QM1iUe6IofM?list=PLrWlVANGG-ij06UCpfdxQ-LBclsWUDLt-) which were quite compelling to me,
+It's not like I've been ignorant to other paradigms like data-oriented programming - I've seen many of the well-known [talks](https://youtu.be/rX0ItVEVjHc) and [video essays](https://youtu.be/QM1iUe6IofM?list=PLrWlVANGG-ij06UCpfdxQ-LBclsWUDLt-) which were quite compelling to me - 
 but I didn't feel like I could employ DOP in a meaningful way in Unity without going against the grain.
 This frustration with Unity and OOP in conjunction with a blossoming interest in data-oriented programming led me to Odin!
 
 Now I must admit - I was afraid I would bounce off the language. However, to my surprise the exact opposite occured! Unlike my previous forays into other languages like C++ and Rust, I got completely hooked by Odin.
 
-The following breakdown will be composed of two different parts: an overview of my processes learning Odin as a Unity developer, and a breakdown of the project itself.
+The following breakdown will be composed of two different parts: an overview of my process learning Odin as a Unity developer, and a breakdown of the project itself.
 
 
 
@@ -23,17 +25,17 @@ Asterboids is a top-down space shooter where the player fights off waves of enem
 Enemies drop orbs which can be picked up to gain health and xp. When the player levels up they can pick a perk that affects the gameplay in some way, like you'd find in a rogue-like.
 
 This project might not be a shining example of how to program in Odin, but I was still really happy with how straightfoward its development felt. It's a simple game, and so is the codebase!
-With that in mind, this might be a good resource for other newbies who are looking into Odin so I've left thorough comments breaking most of the codebase down.
+With that in mind, this might be a good resource for other newbies who are looking into Odin. I've left plenty of thorough comments breaking most of it down.
 
 Now lets jump behind the scenes. When working on the game, there were two things I thought were particularly satisfying to develop: the smoke trails and enemy flocking simulation,
 
 ### Smoke Trails
-It started as me just wanting to draw a trail behind the player when they dash. An approach I've enjoyed using for 2D trails in the past is to draw the objects that should have a trail into a render texture. 
+It started as me just wanting to draw a trail behind the player when they dash. An approach I've gotten a lot of mileage out of in the past is to draw the objects that should have a trail directly into a render texture. 
 Rather than clearing the render texture each frame, it is drawn into _another_ render texture using a shader that subtracts a little bit of alpha from the entire image. Using this double-buffered render texture aproach lets you create post-processing-like
 effects which accumulate over time.
 ![asterboid_TJDXf7NdIz](https://github.com/keenanwoodall/asterboid/assets/9631530/da811728-5787-479e-8934-015611e05447)
 
-I wanted to see if I could add a bit more juice to the effect, and recalled two interesting references:
+The fading trail was working, but I wanted to see if I could add a bit more juice to the effect. I recalled two interesting references which inspired the effect:
 1. This [tweet](https://x.com/SoerbGames/status/1570773880444448773) by a game developer showing their screen-space smoke sim
 2. The [vfx breakdown](https://youtu.be/6-SRtd9NTvw?t=66) of Remedy's Control, which showcases some fancy re-projection tech for their pseudo-3D smoke sim
 
