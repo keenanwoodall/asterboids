@@ -42,9 +42,10 @@ Player :: struct {
     on_tick_player_thruster_particles : ActionStack(bool, Game),
 
     thruster_volume         : f32,
-    thruster_particle_timer : Timer,
-    dash_particle_timer     : Timer, 
-    last_damage_time        : f64,       // The last time the player was damaged
+    thruster_particle_timer : Timer,    // How fast thruster particles are spawned
+    thruster_proj_timer     : Timer,    // The "thruster projectiles" modifier is responsible for ticking this timer. It uses it to determine the projectile fire rate
+    dash_particle_timer     : Timer,    // How fast dash particles are spawned
+    last_damage_time        : f64,      // The last time the player was damaged
 }
 
 init_player :: proc(using player : ^Player) {
@@ -72,6 +73,7 @@ init_player :: proc(using player : ^Player) {
     last_damage_time = -1000
 
     thruster_particle_timer = { rate = 100 }
+    thruster_proj_timer = { rate = 10 }
     dash_particle_timer = { rate = 150 }
 
     init_action_stack(&on_tick_player_thruster_particles)

@@ -158,8 +158,8 @@ ModifierChoices := [ModifierType]Modifier {
         single_use  = true,
         on_choose   = proc(game : ^Game) { 
             add_action(&game.player.on_tick_player_thruster_particles, proc(emit : ^bool, game : ^Game) {
-                for i : u64 = 0; i < game.player.thruster_particle_timer.last_tick_delta; i+= 1 {
-                    shoot_weapon(&game.projectiles, game.weapon, get_player_base(game.player), -get_player_dir(game.player), color = rl.Color{ 255, 161, 0, 100 })
+                for i : int = 0; i < tick_timer(&game.player.thruster_proj_timer, game.game_delta_time); i+= 1 {
+                    shoot_weapon(&game.projectiles, game.weapon, get_player_base(game.player), -get_player_dir(game.player), color = rl.Color{ 255, 161, 0, 100 }, spread_factor = 0, spread_bias = 0.3)
                 }
             })
         }
@@ -179,12 +179,13 @@ ModifierChoices := [ModifierType]Modifier {
     },
     .ChronalDisruptor = {
         type        = .ChronalDisruptor,
-        name        = "Chronal Disruptor",
+        name        = "Chronal ",
         description = "Slows time when enemies are near",
         single_use  = true,
         on_choose   = proc(game : ^Game) { 
             add_action(&game.on_calc_time_scale, proc(time_scale : ^f32, game : ^Game) {
-                // no slo-mo while invulnerable due to damage
+                // I sure wish raylib had a master pitch control for this effect.
+                // No slo-mo while invulnerable due to damage
                 if game.game_time - game.player.last_damage_time < PLAYER_DAMAGE_DEBOUNCE do return
                 if near, dist := near_enemy(game.player, game.enemies); near {
                     n_dist := math.smoothstep(f32(20), 100.0, dist)

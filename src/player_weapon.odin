@@ -89,8 +89,8 @@ emit_muzzle_blast :: proc(ps : ^ParticleSystem, pos, dir : rl.Vector2, col : rl.
     spawn_particles_direction(ps, pos, +dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = col, angle = 0.2, drag = 10)
 }
 
-shoot_weapon :: proc(projectiles : ^Projectiles, weapon : Weapon, pos, dir : rl.Vector2, color := rl.SKYBLUE) {
-    dir := rl.Vector2Rotate(dir, rand.float32_range(-weapon.spread, weapon.spread))
+shoot_weapon :: proc(projectiles : ^Projectiles, weapon : Weapon, pos, dir : rl.Vector2, color := rl.SKYBLUE, spread_factor : f32 = 1, spread_bias : f32 = 0) {
+    dir := rl.Vector2Rotate(dir, rand.float32_range(-(weapon.spread * spread_factor + spread_bias), weapon.spread * spread_factor + spread_bias))
     actual_speed := weapon.speed * rand.float32_range(0.95, 1)
     add_projectile(
         newProjectile = Projectile {
