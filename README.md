@@ -204,8 +204,8 @@ There was one moment in particular that I thought was pretty magical. I was test
 Eventually, out of desperation, I opened the Odin language overview and hit Ctrl+F to see if "leak" was mentioned anywhere. It took me straight to a 20-line example snippet that sets up a "tracking" allocator. I pasted it at the top of my program, ran my game, and it printed the line numbers of
 two different places where I allocated memory that was never freed. My mind was blown!
 
-When I first started getting into Odin, I was really steeling myself for a world of hurt as I acclimated to the process of manual memory management. I'm happy to report it really wasn't an issue. I'm sure there's plenty of places where what I'm doing is sub-optimal, but that's bound to happen.
-The `defer` keyword and temp/tracking allocators really helped cushion the transition away from GC and I found I quite preferred managing memory explicitly as opposed to the weird meta-game I'm used to playing to appease the garbage collector.
+When I first started getting into Odin, I was really steeling myself for a world of hurt as I acclimated to the process of manual memory management. I'm happy to report it really wasn't an issue. I'm sure there's plenty of places where what I'm doing is sub-optimal, but that's just something I'll get more knowledgeable about over time.
+The `defer` keyword and temp/tracking allocators really helped cushion the jump away from GC and I found I quite preferred managing memory explicitly as opposed to the weird meta-game I'm used to playing to appease the garbage collector.
 
 ### Summary
 
