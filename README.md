@@ -41,22 +41,24 @@ I went for a very simple approach that's similar to the technique used in the fi
 This essentially "moves" pixels in the trail map over time using a noise function as a flow field. I first tried using 2D gradient noise for the displacement, but the results were awkward. Rather than flowing, the pixels just awkwardly rolled along the flow map until they hit a valley and got stuck.
 I opted for using a 1d noise output and mapping it between 0 and TAU to represent an angle. Then each noise sample represents the rotation of a vector used to displace the pixel sample. This helped the pixels move more fluidly, though I imagine it could look even better with a different type of noise.
 ```glsl
-// Use the noise float as an angle to rotate a unit vector
-float noise = snoise(noise_coord);
-vec2 noiseDir = rotate(vec2(0, 1), noise * PI * 2);
-
-// The "lifetime" of the pixel will be its alpha, since the longer it's alive the lower its alpha should be
-float lifetime = 1 - texture(texture0, uv).a + 0.05;
-// We'll use the "lifetime" to approximate drag by having the displacement strength lessen
-uv += noiseDir * 0.05 * pow(lifetime, 10) * dt;
+// The "lifetime" of the current pixel will be 1-alpha, since the longer it's alive the lower its alpha should be.
+float lifetime = 1 - texture(texture0, uv).a;
+// Offset the uv by the noise direction.
+// We'll use the pixel "lifetime" (again, just the alpha) plugged into a power curve to approximate drag.
+// This way low opacity pixels get moved less.
+float drag = pow(lifetime, .7);
+float force = 0.1;
+uv += noiseDir * force * drag * dt;
 
 vec4 new_color = texture(texture0, uv);
 ```
 This is what the trail effect looks like with the displacement applied. The flow map is visualized on the right of the screen.
-![asterboid_T1Zd1tq9KA](https://github.com/keenanwoodall/asterboid/assets/9631530/d8cac08e-bcbf-4acf-9eab-d370d856d60f)
 
-As a final step, I wanted the smoke to disperse over time. Rather than adding a blur pass, I'm simply setting the filter-mode of the trail render-texture to BILINEAR. This allows for a cheap blur effect, though I think the rate it blurs over time is tied to framerate which isn't ideal.
-![asterboid_sxz7xfOAJg](https://github.com/keenanwoodall/asterboid/assets/9631530/294ee894-ab22-46dc-85ba-4ef732b4b498)
+![asterboid_pHHbExaKcR](https://github.com/keenanwoodall/asterboid/assets/9631530/b8ba88bf-7fa2-46ea-849f-98be9099ec17)
+
+I actually think it looks good as-is, but as a final step I wanted the smoke to disperse over time. Rather than adding a blur pass, I'm simply setting the filter-mode of the trail render-texture to BILINEAR. This allows for a cheap blur effect, though I think the rate it blurs over time is tied to framerate which isn't ideal.
+
+![asterboid_9h8g1vTNVx](https://github.com/keenanwoodall/asterboid/assets/9631530/d76d8c29-cb39-42fa-90cf-8acacc5b50f4)
 
 Right now the forces are calculated on the fly via procedural noise, but if instead I stored forces in a render texture, I could "draw" arbitrary forces into the flow map. This would be useful for things like the player's thruster, which could add a force behind the player that pushes the 
 trail pixels away. It could also allow for events like explosions; to render a radial force into the flow map which repulses the nearby trail map pixels away from the source of the explosion.
@@ -74,8 +76,7 @@ for boid in boids
   flock(boid, boids) // alignment, cohesion, and separation forces
 ```
 This worked, but I couldn't have more than a few hundred boids in the simulation before the frame-rate tanked.
-To speed it up I wanted to do some sort of spatial partitioning. I considered something more complicated like a quad-tree, but in my experience those can be more trouble than they're worth.
-I recently watched a cool [video](https://youtu.be/oewDaISQpw0) on optimization using spatial hashgrids. It seemed like a basic implementation and usage would be quite straightforward, so I wrote my own.
+To speed it up I wanted to do some sort of spatial partitioning. I had recently watched a cool [video](https://youtu.be/oewDaISQpw0) on optimization using spatial hashgrids and it seemed like a basic implementation and usage would be quite straightforward, so I wrote my own.
 My hashgrid is basically just a map of 2d coordinates to dynamic arrays of arbitrary data - with some accompanying utility methods to get/set cell data.
 ```js
 HGrid :: struct($T : typeid) {
