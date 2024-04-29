@@ -8,7 +8,7 @@ I ended up spending a bit more time on it because I was learning a lot and havin
 
 I have been a Unity developer for a bit, and as such I've grown accustomed to OOP and high(ish)-level programming. However over the last couple years I've started feel a bit jaded towards most of the code I read and write.
 It's not like I've been ignorant to other paradigms like data-oriented programming - I've seen many of the well-known [talks](https://youtu.be/rX0ItVEVjHc) and [video essays](https://youtu.be/QM1iUe6IofM?list=PLrWlVANGG-ij06UCpfdxQ-LBclsWUDLt-) that make a case against object-oriented programming.
-They were quite compelling to me, but I didn't feel like I could employ DOP in a meaningful way with my work in Unity.
+They were quite compelling to me, but I didn't feel like I could employ DOP in a meaningful way in Unity without going against the grain.
 This frustration with Unity and OOP in conjunction with a blossoming interest in data-oriented programming led me to Odin!
 
 Now I must admit - I was afraid I would bounce off the language. However, to my surprise the exact opposite occured! Unlike my previous forays into other languages like C++ and Rust, I got completely hooked by Odin.
