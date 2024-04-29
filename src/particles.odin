@@ -58,7 +58,8 @@ tick_particles :: proc(using particle_system : ^ParticleSystem, dt: f32) {
 // Draws a particle system as particles
 draw_particles_as_pixels :: proc(using particle_system : ^ParticleSystem, opacity : f32 = 1) {
     for p in particles[0:count] {
-        rl.DrawPixelV(p.pos, rl.ColorAlpha(p.col, opacity))
+        alpha := math.pow((1 - p.tim / p.dur), .5)
+        rl.DrawRectangleV(p.pos, {2, 2}, rl.ColorAlpha(p.col, alpha * opacity))
     }
 }
 
@@ -183,14 +184,16 @@ spawn_particles_direction :: proc(
     angle           : f32 = 0,
     drag            : f32 = 0,
     angular_drag    : f32 = 0,
-    size            : rl.Vector2 = { 1, 1 }) {
+    size            : rl.Vector2 = { 1, 1 },
+    emit_radius     : rl.Vector2 = { 0, 0 }) {
         
     for i in 0..<count {
         speed       := rand.float32_range(min_speed, max_speed)
         vel         := rl.Vector2Rotate(direction * speed, rand.float32_range(-angle, angle))
         rand_dir    := linalg.normalize(vel)
+        pos         := center + rl.Vector2Rotate({math.lerp(emit_radius.x, emit_radius.y, rand.float32_range(0, 1)), 0}, rand.float32_range(0, math.TAU))
         new_particle    := Particle {
-            pos = center,
+            pos = pos,
             vel = vel,
             col = color,
             dur = rand.float32_range(min_lifetime, max_lifetime),

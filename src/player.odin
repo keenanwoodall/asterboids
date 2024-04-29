@@ -73,8 +73,8 @@ init_player :: proc(using player : ^Player) {
     last_damage_time = -1000
 
     thruster_particle_timer = { rate = 100 }
-    thruster_proj_timer = { rate = 10 }
-    dash_particle_timer = { rate = 150 }
+    thruster_proj_timer = { rate = 50 }
+    dash_particle_timer = { rate = 100 }
 
     init_action_stack(&on_tick_player_thruster_particles)
 }
@@ -144,20 +144,21 @@ tick_player :: proc(using game : ^Game) {
 
         dash_speed := linalg.length(player.dash_vel)
 
-        if dash_speed > 50 {
+        if dash_speed > 1 {
             emit_count := tick_timer(&player.dash_particle_timer, game_delta_time)
-            spawn_particles_direction(&line_particles, 
+            spawn_particles_direction(&pixel_particles, 
                 center = get_player_base(player),
                 direction = -get_player_dir(player),
                 count = emit_count,
-                min_speed = 500,
-                max_speed = 800,
-                min_lifetime = .1,
-                max_lifetime = .3,
-                color = { 102 + 30, 191 + 50, 255, 255 }, // Sky blue + some brighness
-                angle = linalg.to_radians(f32(5)),
-                drag = 3,
-                size = { 1, 30 }
+                min_speed = dash_speed * 0.1,
+                max_speed = dash_speed * 0.4,
+                min_lifetime = 0.1,
+                max_lifetime = 1.6,
+                color = rl.SKYBLUE, // Sky blue + some brighness
+                angle = linalg.to_radians(f32(10)),
+                drag = 2,
+                size = { 1, 30 },
+                emit_radius = { 0, 10 }
             )
         }
     }
@@ -229,13 +230,14 @@ draw_player_trail :: proc(using game : ^Game) {
     rl.DrawTriangle(corners[0], corners[2], corners[1], color)
 
     // speed trail
-    if speed > 200 {
+    if speed > 200 || dash_speed > 1 {
         corners = get_player_corners(player)
-        rl.DrawPixelV(corners[0], {255, 255, 255, 80})
-        rl.DrawPixelV(corners[1], {255, 255, 255, 80})
-        rl.DrawPixelV(corners[2], {255, 255, 255, 80})
+        alpha := u8(math.lerp(f32(140), 240, math.smoothstep(f32(0.1), 10, dash_speed)))
+        rl.DrawPixelV(corners[0], {255, 255, 255, alpha})
+        rl.DrawPixelV(corners[1], {255, 255, 255, alpha})
+        rl.DrawPixelV(corners[2], {255, 255, 255, alpha})
+        rl.DrawPixelV(get_player_base(player), {255, 255, 255, alpha})
     }
-
 }
 
 // The direction the player is facing

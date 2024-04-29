@@ -41,7 +41,7 @@ void main() {
     vec4 input_color = texture(texture0, distortedUV) * colDiffuse;
 
     // Apply Gaussian peak for brightness adjustment
-    float brightnessAdjustment = gaussian1D(fract(uv.y * renderHeight), 0.5, 0.3);
+    float brightnessAdjustment = gaussian1D(fract(uv.y * renderHeight * .75), 0.5, 0.3);
 
     // Set the final color with adjusted brightness and distortion
     finalColor = vec4(clamp(input_color.rgb * brightnessAdjustment, 0, 1), 1.0);

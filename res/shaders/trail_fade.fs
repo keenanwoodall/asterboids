@@ -142,16 +142,18 @@ void main() {
     // Use the noise float as an angle to rotate a unit vector
     float noise = snoise(noise_coord);
     vec2 noiseDir = rotate(vec2(0, 1), noise * PI * 2);
+    // compensate for aspect ratio
+    noiseDir.x /= float(res.x) / float(res.y);
 
     // The "lifetime" of the pixel will be its alpha, since the longer it's alive the lower its alpha should be
-    float lifetime = 1 - texture(texture0, uv).a + 0.05;
+    float lifetime = 1 - texture(texture0, uv).a ;
     // We'll use the "lifetime" to approximate drag by having the displacement strength lessen
-    uv += noiseDir * 0.05 * pow(lifetime, 10) * dt;
+    uv += noiseDir * 0.2 * pow(lifetime, 10) * dt;
 
     vec4 input = texture(texture0, uv);
 
-    input.a -= .25 * dt;
+    input.a -= .2 * dt;
     input.a /= 1 + (5 * dt);
+
     output = input;
-    //output = vec4(noiseDir, 0, 1);
 }

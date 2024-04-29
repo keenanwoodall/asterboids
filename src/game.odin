@@ -61,6 +61,8 @@ load_game :: proc(using game : ^Game) {
     rl.SetTextureWrap(render_target_b.texture, .CLAMP)
     rl.SetTextureWrap(trail_render_target_a.texture, .CLAMP)
     rl.SetTextureWrap(trail_render_target_b.texture, .CLAMP)
+    rl.SetTextureFilter(trail_render_target_a.texture, .BILINEAR)
+    rl.SetTextureFilter(trail_render_target_b.texture, .BILINEAR)
 
     request_restart = false
     game_time = 0
@@ -176,7 +178,7 @@ draw_game :: proc(using game : ^Game) {
         draw_projectiles(&enemy_projectiles, 0.3)
         rl.EndTextureMode()
 
-        swap(&trail_render_target_a, &trail_render_target_b)
+        swap(&trail_render_target_b, &trail_render_target_a)
     }
 
     // Render game
@@ -185,7 +187,7 @@ draw_game :: proc(using game : ^Game) {
         defer rl.EndTextureMode()
         
         rl.DrawRectangleGradientV(0, 0, rl.GetScreenWidth(), rl.GetScreenHeight(), {10, 3, 16, 255}, {5, 10, 20, 255})
-
+        rl.ClearBackground(rl.BLACK)
         draw_stars(&stars)
 
         // Draw trails over the background, but before everything else
