@@ -39,8 +39,8 @@ The fading trail was working, but I wanted to see if I could add a bit more juic
 1. This [tweet](https://x.com/SoerbGames/status/1570773880444448773) by a game developer showing their screen-space smoke sim
 2. The [vfx breakdown](https://youtu.be/6-SRtd9NTvw?t=66) of Remedy's Control, which showcases some fancy re-projection tech for their pseudo-3D smoke sim
 
-I went for a very simple approach that's similar to the technique used in the first link. In addition to fading out the trail map over time, I add a little bit of displacement to where each pixel is sampled using noise.
-This essentially "moves" pixels in the trail map over time using a noise function as a flow field. I first tried using 2D gradient noise for the displacement, but the results were awkward. Rather than flowing, the pixels just awkwardly rolled along the flow map until they hit a valley and got stuck.
+I went for a very simple approach that's similar to the technique used in the first link. In addition to fading out the trail map over time, I add a little bit of displacement to the uv coordinate used to sample each pixel from the previous frame.
+This essentially "moves" pixels in the trail map over time. I first tried using 2D gradient noise for the displacement, but the results were awkward. Rather than flowing, the pixels just followed the flow of the noise pattern until they hit a valley and got stuck.
 I opted for using a 1d noise output and mapping it between 0 and TAU to represent an angle. Then each noise sample represents the rotation of a vector used to displace the pixel sample. This helped the pixels move more fluidly, though I imagine it could look even better with a different type of noise.
 ```glsl
 // The "lifetime" of the current pixel will be 1-alpha, since the longer it's alive the lower its alpha should be.
