@@ -103,7 +103,7 @@ for boid in boids
 
 https://github.com/keenanwoodall/asterboid/assets/9631530/ac757855-8855-454b-b0d0-b01ceec85df0
 
-This was a lot faster, but still not perfect. I was interested giving multithreading a go, and it seemed like an easy speed things up.
+This was a lot faster, but still not perfect. I was interested giving multithreading a go, and it seemed like a guaranteed way to speed things up significantly.
 I really like Unity's job-system, so I was curious if anything similar existed for Odin. After some googling I found a [job-system](https://github.com/jakubtomsu/jobs) package on GitHub and threw it in my project.
 I was a bit intimidated to dive in, but after a bunch of crashes I finally got it working! Rather than processing the simulation boid by boid as I was before, the boids are now simulated cell by cell.
 Each cell is simulated in its own job, and the job-system spreads that work across multiple threads automatically.
