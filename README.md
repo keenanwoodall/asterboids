@@ -63,14 +63,14 @@ I actually think it looks good as-is, but as a final step I wanted the smoke to 
 ![asterboid_9h8g1vTNVx](https://github.com/keenanwoodall/asterboid/assets/9631530/d76d8c29-cb39-42fa-90cf-8acacc5b50f4)
 
 Right now the forces are calculated on the fly via procedural noise, but if instead I stored forces in a render texture, I could "draw" arbitrary forces into the flow map. This would be useful for things like the player's thruster, which could add a force behind the player that pushes the 
-trail pixels away. It could also allow for events like explosions; to render a radial force into the flow map which repulses the nearby trail map pixels away from the source of the explosion.
+trail pixels away. It could also allow for events like explosions to render a radial force into the flow map which pushes the nearby trail map pixels away from the source of the explosion.
 
 ### Flocking Simulation
 Considering how straightforward a wave-based space shooter is, I wanted to find an interesting way for enemies to move. I'm particularly drawn towards simulations and generative art whose logic is derived from simple rules. 
 When thinking about how the enemies would be designed I considered Cellular Automata, [Particle Life](https://youtu.be/p4YirERTVF0) and Boids - all of which are mesmerizing in their own way. Boids seemed like the easiest thing to use for enemy movement, so I went with that - tho I think Particle Life could be a really cool way to model enemy behavior in a different game.
 
 My take on boids is not novel by any means, but I thought the process with Odin was particularly pleasant compared to how it could have gone in Unity.
-I started with a naive n² implementation where each enemy checks each other enemy to find its neighbors.
+I started with a naive n² implementation where each enemy checks its distance from every other enemy to find its neighbors.
 Each enemy then calculates the average velocity, average position and distances of its neighbors, so that the enemy can steer itself using the three boid behaviors: alignment, cohesion and separation.
 ```js
 // Pseudo-code
@@ -122,10 +122,57 @@ for cell in grid
 run_jobs()
 ```
 
+### Misc
+The smoke sim and flocking sim were my favorite things to implement, but there were a few less notable bits that I enjoyed putting together. I built a little `layout.odin` utility file to help split, pad, center and subdivide rects to compensate for Raylib GUI system which I found a bit lacking.
+Starting with a single rect and chopping it up into bits was actually a pretty solid way to layout UI! It was way less cludgy than I expected. I think one thing that really helped is how arrays can be "value types" in Odin. In C#, arrays are almost always allocated on the heap which I think subconsiously deterred me from trying something this simple in the past.
+
+Another thing I enjoyed was how the level-up modifiers ended up working. Each modifier is a struct that stores a function for ensuring the modifier is valid given the current game state, and another for actually applying it to the game-state
+```js
+// A Modifier is a thing that can be applied to the game state
+// It can do anything, but currently is used for level-up choices.
+Modifier :: struct {
+    name        : cstring,                      // Name of the modifier. Shown in the level up gui
+    description : cstring,                      // Description of the modifier. Shown in the level up gui
+    type        : ModifierType,                 // What type of modifier is this?
+    is_valid    : proc(game : ^Game) -> bool,   // Function that can be called to check if a modifier is valid
+    on_choose   : proc(game : ^Game),           // Function that can be called to apply the modifier to the current game state
+    single_use  : bool,                         // Indicates that this modifier can only be chosen once
+    use_count   : int,                          // How many times this modifier has been used
+}
+```
+Each modifier is authored in a big map and it's quite easy to throw together interesting modifiers
+```js
+ModifierChoices := [ModifierType]Modifier {
+    .ProjectileDelay = {
+        type        = .ProjectileDelay,
+        name        = "Itchy Finger",
+        description = "Player shoots more rapidly",
+        is_valid    = proc(game : ^Game) -> bool { return game.weapon.delay > 0.05 },
+        on_choose   = proc(game : ^Game) { game.weapon.delay *= 0.8 }
+    },
+    .OverflowBarrage = {
+      type        = .OverflowBarrage,
+      name        = "Overflow Barrage",
+      description = "When at full HP, health pickups are converted into projectiles",
+      single_use  = true,
+      on_choose   = proc(game : ^Game) { 
+          append(
+              &game.pickups.hp_pickup_actions, 
+              proc(game : ^Game, pickup : ^Pickup) {
+                  if game.player.hth >= game.player.max_hth - 1 {
+                      try_play_sound(&game.audio, game.audio.laser)
+                      shoot_weapon(&game.projectiles, game.weapon, ...)
+                  }
+              }
+          )
+      }
+  } ...
+```
+
 ### Summary
-The smoke sim and flocking sim were my favorite things to implement, but there were a few less notable bits that I enjoyed putting together. I built a little collection of utility functions to split, pad, center and subdivide rects to compensate for Raylib GUI system which I found a bit lacking.
-Starting with a single rect and chopping it up into bits was actually a pretty solid way to layout UI. I'm used to automatic imgui layouts, or manually authoring them in an editor like Unity, so I was a little surprised at how _not_ awful laying out the rects was with my handful of utility functions.
-I think one thing that really helped was how arrays can be "value types" in Odin. In C# arrays are almost always allocated on the heap which I think subconsiously deterred me from trying something this simple in the past.
+
+All-in-all I honestly had a great time with this project. There's some decent bones here so adding on to it should be pretty easy. I've got other projects calling my name so I may not work much more on it, but it's definitely not the last time I'll be turning to Odin!
+
 ## Learning Odin
 ### First Steps
 
@@ -133,13 +180,13 @@ I have never properly used a low-level language. So in my eyes, the fact that wi
 You can start writing code that actually does something cool in less than a day, and feel quite comfortable with the language in less than a week.
 
 Now I'm not going to claim that I immediately understood everything about Odin. I had my fair share of stumbles (and still do!)
-Some of the speedbumps were just due to me not understanding unspoked fundamentals. For instance, I was initially confused as to why Raylib "just worked", when SDL only worked with its DLL added to my project.
+Some of the speedbumps were just due to me not understanding the fundamentals. For instance, I was initially confused as to why Raylib "just worked", when SDL only worked with its DLL added to my project.
 That led to me learning about static vs dynamic linking and the convenience of header-only libraries.
 There were also a couple hiccups regarding manual memory management - mostly just me allocating stuff unnecessarily on the heap and taking a bit to understand Odin's different array types.
 Growing pains, but growing nonetheless!
 
 One thing that left a bit to be desired is tooling. Unity and C# have excellent IDE support: auto-complete, refactoring, and attaching a debugger "just works." 
-While the Odin Language Server (ols) is pretty easy to setup and handles the basics, I miss certain things I would consider basic functionality like being able to rename a variable across a project.
+While the Odin Language Server (ols) is pretty easy to setup and handles the basics, I miss certain big things like being able to rename a variable across a project.
 
 All that being said, learning Odin has been quite a positive experience for me. Thanks to its focus on simplicity, Odin provided a buttery smooth entry into the world of low-level data-oriented programming.
 
@@ -161,10 +208,10 @@ two different places where I allocated memory that was never freed. My mind was 
 When I first started getting into Odin, I was really steeling myself for a world of hurt as I acclimated to the process of manual memory management. I'm happy to report it really wasn't an issue. I'm sure there's plenty of places where what I'm doing is sub-optimal, but that's bound to happen.
 The `defer` keyword and temp/tracking allocators really helped cushion the transition away from GC and I found I quite preferred managing memory explicitly as opposed to the weird meta-game I'm used to playing to appease the garbage collector.
 
-### Data Oriented Programming
+### Summary
 
 Unity was the vessel through which I originally learned programming. It's a very object-oriented ecosystem so I've been a very object-oriented programmer. My noggin has been trained to break down problems in a very abstract way. 
 Until recently I couldn't really imagine how I would architect programs any differently. While I could see the sense in other's criticisms of OOP, I still didn't have a concrete understanding of what a data oriented program would look like.
 
 Making a tiny game with Odin forced me to discard what I had felt were the most basic "primitives" of a program architecture. When I finally started solving problems and implementing features without all the object-oriented bells and whistles I was accustomed to, it quickly became clear to me that I had been making mountains out of molehills. 
-I was pretty amazed at how everything just...kept staying simple? I know I'm a bit late to the DOP (data-oriented party), but man what a breath of fresh air. I'd be lying if I said I didn't feel a bit of catharsis!
+I was pretty amazed at how everything just...kept staying simple? I know I'm a bit late to the DOP (data-oriented party), but man, what a breath of fresh air. I'd be lying if I said I didn't feel a bit of catharsis!
