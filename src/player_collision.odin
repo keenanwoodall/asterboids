@@ -61,6 +61,56 @@ tick_player_enemy_collision :: proc(using game : ^Game) {
     }
 }
 
+// Tick functions are called every frame by the game.
+// This checks whether the player is overlapping any enemies, and deals damage to the player if so.
+tick_player_projectile_collision :: proc(using game : ^Game) {
+    if !player.alive do return
+
+    // We are going to use the enemies hgrid to minimize the number of necessary enemy collision checks.
+    // Get the coordinate of the enemy cell the player is currently inside.
+    player_cell_coord       := get_cell_coord(enemies.grid, player.pos)
+    
+    // Iterate over the enemies in the same cell as the player and apply damage for each collision.
+    for i := 0; i < enemy_projectiles.count; i += 1 {
+        using proj := &enemy_projectiles.instances[i]
+        if hit, point, normal := check_player_line_collision(pos, pos + dir * len, player); hit {
+            knock_back_dir := -normal
+            particle_dir := -knock_back_dir
+
+            spawn_particles_direction(&pixel_particles, player.pos, particle_dir, count = 32, min_speed = 50, max_speed = 300, min_lifetime = 0.1, max_lifetime = 0.75, color = rl.RAYWHITE, angle = math.PI / 3, drag = 5)
+            try_play_sound(&audio, audio.damage)
+
+            player.vel += knock_back_dir * player.knockback * 0.5
+
+            if game_time - player.last_damage_time > PLAYER_DAMAGE_DEBOUNCE
+            {
+                player.last_damage_time = game_time
+                player.hth -= ENEMY_PROJECTILE_DAMAGE
+            }
+
+            release_projectile(i, &enemy_projectiles)
+            i -= 1
+    
+            break
+        }
+    }
+
+    // Note: Checking the enemies in the same cell as the player is not quite thorough
+    // because the player could be overlapping multiple cells.
+    // In practice, this has been fine tho
+
+    // If the players health is 0, indicate they are no longer alive and spawn some death particles.
+    if player.hth <= 0 {
+        player.alive = false
+        player.hth = 0
+
+        spawn_particles_triangle_segments(&line_trail_particles, get_player_corners(player), rl.RAYWHITE, player.vel, 0.4, 5.0, 50, 150, 2, 2, 3)
+        spawn_particles_burst(&line_trail_particles, player.pos, player.vel, 128, 200, 1200, 0.2, 1.5, rl.RAYWHITE, drag = 3)
+        spawn_particles_burst(&line_particles, player.pos, player.vel, 64, 100, 1500, 0.3, 1.5, rl.SKYBLUE, drag = 2)
+        try_play_sound(&audio, audio.die)
+    }
+}
+
 // Checks collision between a player and an enemy.
 // The player is a square and the enemies are triangles, so we can simply do line-line intersection tests for each line in the player and enemy.
 check_player_enemy_collision :: proc(player : Player, enemy : Enemy) -> (hit : bool, point : rl.Vector2) {
@@ -89,4 +139,25 @@ check_player_enemy_collision :: proc(player : Player, enemy : Enemy) -> (hit : b
     }
 
     return false, {}
+}
+
+// Returns true if the provided line intersects the segments of a player. If true, also returns the intersection point/normal
+check_player_line_collision :: proc(line_start, line_end : rl.Vector2, player : Player) -> (hit : bool, point, normal : rl.Vector2) {
+    corners := get_player_corners(player)
+
+    // Iterate over each segment
+    for i := 0; i < len(corners); i += 1 {
+        player_corner_start  := corners[i]
+        player_corner_end    := corners[(i + 1) % len(corners)]
+
+        point : rl.Vector2 = {}
+
+        if rl.CheckCollisionLines(line_start, line_end, player_corner_start, player_corner_end, &point) {
+            tangent := linalg.normalize(player_corner_start - player_corner_end)
+            normal  := rl.Vector2Rotate(tangent, -math.TAU)
+            return true, point, normal
+        }
+    }
+
+    return false, {}, {}
 }

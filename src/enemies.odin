@@ -15,7 +15,7 @@ import rl "vendor:raylib"
 // Repository: https://github.com/jakubtomsu/jobs
 import "../external/jobs"
 
-MAX_ENEMIES             :: 1080
+MAX_ENEMIES             :: 1024
 ENEMY_SIZE              :: 6
 ENEMY_SPEED             :: 2500
 ENEMY_TURN_SPEED        :: 10
@@ -27,30 +27,87 @@ ENEMY_FOLLOW_FACTOR     :: 2.0
 ENEMY_ALIGNMENT_FACTOR  :: 1.0
 ENEMY_COHESION_FACTOR   :: 1.25
 ENEMY_SEPARATION_FACTOR :: 3.0
+ENEMY_PROJECTILE_DAMAGE :: 25
+ENEMY_PROJECTILE_SPREAD :: .1
+ENEMY_PROJECTILE_SPEED  :: 500
+
+// Function signature for an action an enemy can perform. Like shoot, dash, spawn mine etc
+EnemyAction :: proc(enemy : ^Enemy, game : ^Game)
 
 // The Enemy struct stores the state of a single enemy
 Enemy :: struct {
     pos     : rl.Vector2,   // Position
     vel     : rl.Vector2,   // Velocity
     rot     : f32,          // Rotation (radians)
-    siz     : f32,          // Size
     spd     : f32,          // Speed multiplier
-    col     : rl.Color,     // Color
-    hp      : int,          // Health points
-    dmg     : f32,
+    siz     : f32,          // Speed multiplier
+    hp      : int,           // Health points
+    dmg     : int,
     kill    : bool,         // Killed?
-    loot    : int,          // Number of pickups that will be dropped on death
-    id      : u8,           // There are different types of enemies, each with a different size/hp/loot etc. 
-                            // This is an identifier for quick comparisons between different types of enemies
+
+    id      : EnemyArchetype,   // There are different types of enemies, each with a different size/hp/loot etc. 
+                                // This is an identifier for quick comparisons between different types of enemies.
+                                // It can also be used to index into the global Archetypes array to get shared.
+                                // Some hot data that is shared between enemies of the same archetype like `siz` is still stored on the enemy for fast access.
+    action_timer : Timer,
+    action       : EnemyAction,
 }
 
 // The Enemies struct stores the state of all enemies
 Enemies :: struct {
-    count       : int,                      // The number of active enemies.
-    kill_count  : int,                      // The number of enemies which have been killed this game.
-    grid        : HGrid(int),               // HGrid is a "hash grid". It lets us figure out where enemies are relative to eachother more efficiently.
-    instances   : [MAX_ENEMIES]Enemy,       // Enemies are stores in a pool so that their memory is preallocated.
-    new_instances   : [MAX_ENEMIES]Enemy,   // To assist in safe multithreading of the enemy boid sim we store two copies of the enemies
+    count         : int,                      // The number of active enemies.
+    kill_count    : int,                      // The number of enemies which have been killed this game.
+    grid          : HGrid(int),               // HGrid is a "hash grid". It lets us figure out where enemies are relative to eachother more efficiently.
+    instances     : []Enemy,       // Enemies are stores in a pool so that their memory is preallocated.
+    new_instances : []Enemy,   // To assist in safe multithreading of the enemy boid sim we store two copies of the enemies
+}
+
+// This is probably a silly way to go about this, but to author the three enemy variants
+// I'm using this struct to store the relevant parameters.
+Archetype :: struct { size : f32, hp, dmg : int, spd : f32, loot : int, color : rl.Color, rate : f64, action : EnemyAction}
+
+// Each archetype is stored in this array.
+// Created enemies are assigned an id which correlates with their indexc in this array.
+EnemyArchetype :: enum u8 { Small, Medium, Large, Tutorial }
+Archetypes := map[EnemyArchetype]Archetype {
+    .Small = { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 35, spd = 1, loot = 1, color = rl.RED },
+    .Medium = { size = ENEMY_SIZE * 1.5, hp = 2, dmg = 50, spd = 1, loot = 3, color = rl.ORANGE,
+        rate = 1,
+        action = proc(enemy : ^Enemy, game : ^Game) {
+            // Chance that enemy shoots
+            if rand.float32_range(0, 1) < 0.3 do return
+            enemy_speed := linalg.length(enemy.vel)
+            if enemy_speed > 0 {
+                dir_to_player := linalg.normalize(game.player.pos - enemy.pos)
+                player_alignment := linalg.dot(enemy.vel / enemy_speed, dir_to_player)
+
+                if player_alignment < 0.5 do return
+
+                dir_to_player = rl.Vector2Rotate(dir_to_player, rand.float32_range(-ENEMY_PROJECTILE_SPREAD, ENEMY_PROJECTILE_SPREAD))
+                actual_speed := ENEMY_PROJECTILE_SPEED * rand.float32_range(0.95, 1)
+                try_play_sound(&game.audio, game.audio.laser)
+                emit_muzzle_blast(&game.pixel_particles, enemy.pos, dir_to_player, rl.ORANGE)
+                add_projectile(
+                    newProjectile = Projectile {
+                        pos = enemy.pos,
+                        dir = dir_to_player,
+                        spd = actual_speed,
+                        len = 15,
+                        bounces = 0,
+                        col = rl.ORANGE,
+                    },
+                    projectiles = &game.enemy_projectiles,
+                )
+            }
+        } 
+    },
+    .Large = { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 90, spd = 1, loot = 7, color = rl.SKYBLUE,
+        rate = 3,
+        action = proc(enemy : ^Enemy, game : ^Game) {
+            // todo: spawn hazard
+        },
+    },
+    .Tutorial = { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 0, spd = 0, loot = 5, color = rl.RED }
 }
 
 // Init functions are called when the game first starts.
@@ -60,38 +117,53 @@ init_enemies :: proc(using enemies : ^Enemies) {
     kill_count  = 0
     grid        = {}
 
+    instances = make([]Enemy, MAX_ENEMIES)
+    new_instances = make([]Enemy, MAX_ENEMIES)
+
     // The enemies grid is list of 2D cells where each cell stores a list enemy indexes.
     // Enemies steer themselves based on the position and velocity of neighboring enemies within a certain radius
     // so we'll set the cell size of the grid to the maximum of those radii
-    cell_size   : f32 = max(ENEMY_ALIGNMENT_RADIUS, ENEMY_COHESION_RADIUS, ENEMY_SEPARATION_RADIUS)
+    cell_size : f32 = max(ENEMY_ALIGNMENT_RADIUS, ENEMY_COHESION_RADIUS, ENEMY_SEPARATION_RADIUS)
     init_cell_data(&grid, cell_size)
 }
 
 // Unload functions are called when the game is closed or restarted.
 // Here we can free an allocated memory.
 unload_enemies :: proc(using enemies : ^Enemies) {
+    delete(instances)
+    delete(new_instances)
     delete_cell_data(grid)
 }
 
 // Tick functions are called every frame by the game
 @(optimization_mode="speed")
-tick_enemies :: proc(using enemies : ^Enemies, player : Player, dt : f32) {
+tick_enemies :: proc(using game : ^Game) {
     // The cell data stored by the enemies grid is rebuilt every frame since enemies are constantly moving 
     // and the cell that an enemy was in last frame may not be the same this frame.
     // There may be room for optimization here since enemies enemies aren't changing cells each frame,
-    // but isolating the enemies whose cell changed would come with it's own performance cost
-    clear_cell_data(&grid)
+    // but isolating the enemies whose cell changed would come with it's own performance cost.
+    // Needs to be cleared even if enemies.count is zero since some code iterates over enemies via grid cells
+    clear_cell_data(&enemies.grid)
 
     // If there aren't any enemies, don't do anything!
-    if count == 0 do return
+    if enemies.count == 0 do return
+
+    // Tick enemy actions
+    for &enemy in enemies.instances[:enemies.count] {
+        if enemy.action == nil do continue // Note: is there a better way to structure entities to avoid putting this condition in a big loop?
+        action_count := tick_timer(&enemy.action_timer, game_delta_time)
+        for i in 0..<action_count {
+            enemy.action(&enemy, game)
+        }
+    }
 
     // Rebuild the enemies grid.
-    #no_bounds_check for i in 0..<count {
-        using enemy := instances[i]
+    #no_bounds_check for i in 0..<enemies.count {
+        using enemy := enemies.instances[i]
         // Get the currenty enemies cell coordinate based on its current position
         // and insert its index into the grid
-        cell_coord := get_cell_coord(grid, pos)
-        insert_cell_data(&grid, cell_coord, i)
+        cell_coord := get_cell_coord(enemies.grid, pos)
+        insert_cell_data(&enemies.grid, cell_coord, i)
     }
 
     // We will be multithreading the enemy boid simulation. 
@@ -99,7 +171,7 @@ tick_enemies :: proc(using enemies : ^Enemies, player : Player, dt : f32) {
     // Enemies in one cell need to check enemies in adjacent cells so to prevent different threads from reading/writing to the same enemy data 
     // the Enemies struct stores two enemy arrays: one for reading and one for writing.
     // Before simulating the boids, copy the current enemies array over the new enemies array so that they are in sync
-    copy_slice(dst = new_instances[:count], src = instances[:count])
+    copy_slice(dst = enemies.new_instances[:enemies.count], src = enemies.instances[:enemies.count])
 
     // Note: This "double-buffered" approach is probably not ideal.
     // An alternate approach that may be worth trying would be to store the enemies array *once*
@@ -124,26 +196,26 @@ tick_enemies :: proc(using enemies : ^Enemies, player : Player, dt : f32) {
     jobs_group      : jobs.Group
     // Allocate a job and job data for each cell in the grid
     // We're using the builtin temporary allocator since these only need to exist for the duration of this function
-    cell_jobs       := make([]jobs.Job, len(grid.cells), context.temp_allocator)
-    cell_jobs_data  := make([]JobData, len(grid.cells), context.temp_allocator)
+    cell_jobs       := make([]jobs.Job, len(enemies.grid.cells), context.temp_allocator)
+    cell_jobs_data  := make([]JobData, len(enemies.grid.cells), context.temp_allocator)
 
     // This is like the `i` of the following for-loop. 
     // We just need to declare and iterate it manually since the loop is iterating over a map which operates via a key rather than an index
     job_idx := 0
     // Iterate over all the cells
     // The key is the cell coordinate and the value is the data stored in the cell (the indices of enemies in the cell)
-    for cell_coord, &enemy_indices in grid.cells {
+    for cell_coord, &enemy_indices in enemies.grid.cells {
         // Increment the job index at the end of this iteration
         defer job_idx += 1
 
         // Initialize the job data at the current index
         cell_jobs_data[job_idx] = JobData {
-            instances[:], 
-            new_instances[:], 
-            grid, 
+            enemies.instances[:], 
+            enemies.new_instances[:], 
+            enemies.grid, 
             enemy_indices, 
             player, 
-            dt
+            game_delta_time
         }
         // Initialize a job at the current index.
         // To create a job we need to provide the job group for synchronization, the data which will be used by the job,
@@ -178,13 +250,13 @@ tick_enemies :: proc(using enemies : ^Enemies, player : Player, dt : f32) {
 
                 // Add the steer force to the enemy, limit its speed, and move the enemy along its new velocity
                 vel += steer_force * dt
-                vel = limit_length(vel, (ENEMY_SPEED * spd) / siz)
+                vel = limit_length(vel, (ENEMY_SPEED * f32(spd)) / f32(siz))
                 pos += vel * dt
 
                 // Enemies are rotated to face along their velocity. 
                 // Enemy velocity can change quite rapidly so to prevent jitter I animating this rotation smoothly over time
                 if dir, ok := safe_normalize(vel); ok {
-                    rot = math.angle_lerp(rot, math.atan2(dir.y, dir.x) - math.PI / 2, 1 - math.exp(-dt * ENEMY_TURN_SPEED))
+                    rot = math.angle_lerp(f32(rot), math.atan2(dir.y, dir.x) - math.PI / 2, 1 - math.exp(-dt * ENEMY_TURN_SPEED))
                 }
             }
         })
@@ -200,14 +272,15 @@ tick_enemies :: proc(using enemies : ^Enemies, player : Player, dt : f32) {
     // The jobs wrote the new enemy states to the new_instances array.
     // The rest of the game references the regular instances array, so we need to copy the new enemies over the array
     // Note: Could we just switch the pointer used by each array to "flip" them needing to copy?
-    copy_slice(dst = instances[:count], src = new_instances[:count]) 
+    copy_slice(dst = enemies.instances[:enemies.count], src = enemies.new_instances[:enemies.count]) 
 }
 
 // Draw functions are called at the end of each frame by the game.
 draw_enemies :: proc(using enemies : ^Enemies) {
     #no_bounds_check for &enemy in instances[0:count] {
         corners := get_enemy_corners(enemy)
-        rl.DrawTriangleLines(corners[0], corners[2], corners[1], enemy.col)
+        archetype := Archetypes[enemy.id]
+        rl.DrawTriangleLines(corners[0], corners[2], corners[1], archetype.color)
     }
 }
 
@@ -216,6 +289,27 @@ add_enemy :: proc(new_enemy : Enemy, using enemies : ^Enemies) {
     if count == MAX_ENEMIES do return
     instances[count] = new_enemy
     count += 1
+}
+
+// Adds a new enemy instance and populates its parameters from a specific enemy archetype.
+add_archetype_enemy :: proc(using enemies : ^Enemies, type : EnemyArchetype, pos, vel : rl.Vector2, rot : f32 = 0) {
+    arch := Archetypes[type]
+    new_enemy := Enemy {
+        pos = pos, 
+        vel = vel, 
+        rot = rot, 
+        spd = arch.spd, 
+        siz = arch.size, 
+        hp = arch.hp,  
+        dmg = arch.dmg, 
+        kill = false,
+        id = type,  
+        // Add some random offset to the last tick time so enemies spawned on the same frame aren't in lockstep
+        action_timer = { rate = arch.rate, last_tick_time = rand.float64_range(0, 1 / arch.rate + 0.01) },
+        action = arch.action,
+    }
+
+    add_enemy(new_enemy, enemies)
 }
 
 // This is a utility function to release an enemy.
@@ -236,9 +330,14 @@ tick_killed_enemies :: proc(using enemies : ^Enemies, pickups : ^Pickups, ps : ^
             i -= 1
             kill_count += 1
 
+            // Some things like enemy color/loot is stored per archetype and needs to be fetched
+            archetype := Archetypes[id]
+            col := archetype.color
+            loot := archetype.loot
+
             spawn_particles_triangle_segments(ps, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
 
-            pickup_count := rand.int_max(enemy.loot + 1)
+            pickup_count : u8 = u8(rand.int_max(int(loot) + 1)) // this casting is annoying
             for i in 0..<pickup_count {
                 spawn_pickup(pickups, pos, PickupType.XP if rand.float32_range(0, 1) > 0.4 else PickupType.Health)
             }

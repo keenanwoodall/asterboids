@@ -83,6 +83,8 @@ tick_projectiles_enemy_collision :: proc(projectiles : ^Projectiles, enemies : ^
                     // Reassign the modified projectile to the array
                     projectiles.instances[proj_idx] = proj
 
+                    archetype := Archetypes[enemy.id]
+
                     // Spawn particles from the hit point along the projectile's direction
                     spawn_particles_direction(
                         particle_system = ps,
@@ -93,7 +95,7 @@ tick_projectiles_enemy_collision :: proc(projectiles : ^Projectiles, enemies : ^
                         max_speed       = 250,
                         min_lifetime    = 0.05,
                         max_lifetime    = 0.5,
-                        color           = enemy.col,
+                        color           = archetype.color,
                         angle           = 0.4,
                         drag            = 1,
                     )

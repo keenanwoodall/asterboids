@@ -14,16 +14,17 @@ import rl "vendor:raylib"
 // This is the entire state of the game
 // Each field is its own struct, and stores the state of some 
 Game :: struct {
-    player          : Player,       // Player position, velocity, health etc.
-    tutorial        : Tutorial,     // Initializes tutorial and manages its state
-    leveling        : Leveling,     // Player xp, level and other state related to leveling up.
-    weapon          : Weapon,       // Fire rate, spread, kick etc.
-    enemies         : Enemies,      // Pool of enemies, each with health, velocity etc.
-    waves           : Waves,        // Manages when waves of enemies are spawned, and how many.
-    pickups         : Pickups,      // Pool of pickups dropped by enemies.
-    audio           : Audio,        // Loaded sounds/music available to be played.
-    stars           : Stars,        // Stars and their colors. Drawn to the screen as pixels.
-    projectiles     : Projectiles,  // Pool of projectiles fired by the player.
+    player            : Player,       // Player position, velocity, health etc.
+    tutorial          : Tutorial,     // Initializes tutorial and manages its state
+    leveling          : Leveling,     // Player xp, level and other state related to leveling up.
+    weapon            : Weapon,       // Fire rate, spread, kick etc.
+    enemies           : Enemies,      // Pool of enemies, each with health, velocity etc.
+    waves             : Waves,        // Manages when waves of enemies are spawned, and how many.
+    pickups           : Pickups,      // Pool of pickups dropped by enemies.
+    audio             : Audio,        // Loaded sounds/music available to be played.
+    stars             : Stars,        // Stars and their colors. Drawn to the screen as pixels.
+    projectiles       : Projectiles,  // Pool of projectiles fired by the player.
+    enemy_projectiles : Projectiles,  // Pool of projectiles fired by the player.
     
     game_time       : f64,          // The time used for gameplay.
     game_delta_time : f32,          // The dela-time used for gameplay.
@@ -80,6 +81,7 @@ load_game :: proc(using game : ^Game) {
     init_enemies(&enemies)
     init_waves(&waves)
     init_projectiles(&projectiles)
+    init_projectiles(&enemy_projectiles)
     init_pickups(&pickups)
     init_stars(&stars)
     load_audio(&audio)
@@ -102,6 +104,8 @@ unload_game :: proc(using game : ^Game) {
 
     unload_player(&player)
     unload_weapon(&weapon)
+    unload_projectiles(&projectiles)
+    unload_projectiles(&enemy_projectiles)
     unload_enemies(&enemies)
     unload_waves(&waves)
     unload_pickups(&pickups)
@@ -127,15 +131,20 @@ tick_game :: proc(using game : ^Game) {
         // Tick all the things!
         tick_pickups(game)
         tick_leveling(game)
+
         tick_player(game)
         tick_player_weapon(game)
 
         // Only tick the waves system if the player is alive and the tutorial is complete
         if player.alive && tutorial.complete do tick_waves(game)
 
-        tick_enemies(&enemies, player, game_delta_time)
+        tick_enemies(game)
         tick_player_enemy_collision(game)
-        tick_projectiles(&projectiles, enemies, game_delta_time)
+
+        tick_projectiles(&projectiles, game_delta_time)
+        tick_projectiles(&enemy_projectiles, game_delta_time)
+        tick_player_projectiles(&projectiles, enemies, game_delta_time)
+        tick_player_projectile_collision(game)
         tick_projectiles_screen_collision(&projectiles)
         tick_projectiles_enemy_collision(&projectiles, &enemies, &pixel_particles, &audio)
         tick_killed_enemies(&enemies, &pickups, &line_particles)
@@ -164,6 +173,7 @@ draw_game :: proc(using game : ^Game) {
         draw_particles_as_pixels(&pixel_particles, 0.3)
         draw_particles_as_lines(&line_particles, 0.3)
         draw_projectiles(&projectiles, 0.3)
+        draw_projectiles(&enemy_projectiles, 0.3)
         rl.EndTextureMode()
 
         swap(&trail_render_target_a, &trail_render_target_b)
@@ -184,6 +194,7 @@ draw_game :: proc(using game : ^Game) {
         draw_player(game)
         draw_enemies(&enemies)
         draw_projectiles(&projectiles)
+        draw_projectiles(&enemy_projectiles)
         draw_pickups(&pickups)
         draw_player_weapon(game)
         draw_particles_as_pixels(&pixel_particles)

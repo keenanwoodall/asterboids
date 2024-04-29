@@ -145,7 +145,7 @@ ModifierChoices := [ModifierType]Modifier {
                 proc(game : ^Game, pickup : ^Pickup) {
                     if game.player.hth >= game.player.max_hth - 1 {
                         try_play_sound(&game.audio, game.audio.laser)
-                        shoot(&game.projectiles, game.player, game.weapon, pos = pickup.pos, dir = get_weapon_dir(game.player), color = rl.Color{ 0, 228, 48, 100 })
+                        shoot_weapon(&game.projectiles, game.weapon, pos = pickup.pos, dir = get_weapon_dir(game.player), color = rl.Color{ 0, 228, 48, 100 })
                     }
                 }
             )
@@ -159,7 +159,7 @@ ModifierChoices := [ModifierType]Modifier {
         on_choose   = proc(game : ^Game) { 
             add_action(&game.player.on_tick_player_thruster_particles, proc(emit : ^bool, game : ^Game) {
                 for i : u64 = 0; i < game.player.thruster_particle_timer.last_tick_delta; i+= 1 {
-                    shoot(&game.projectiles, game.player, game.weapon, get_player_base(game.player), -get_player_dir(game.player), color = rl.Color{ 255, 161, 0, 100 })
+                    shoot_weapon(&game.projectiles, game.weapon, get_player_base(game.player), -get_player_dir(game.player), color = rl.Color{ 255, 161, 0, 100 })
                 }
             })
         }
@@ -171,7 +171,7 @@ ModifierChoices := [ModifierType]Modifier {
         single_use  = true,
         on_choose   = proc(game : ^Game) { 
             add_action(&game.weapon.on_calc_delay, proc(delay : ^f64, game : ^Game) {
-                if game.player.hth / game.player.max_hth < 0.5 {
+                if f32(game.player.hth) / f32(game.player.max_hth) < 0.5 {
                     delay^ *= 0.75
                 }
             })

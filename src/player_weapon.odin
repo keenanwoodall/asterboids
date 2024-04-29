@@ -71,21 +71,25 @@ tick_player_weapon :: proc(using game : ^Game) {
         try_play_sound(&audio, audio.laser, debounce = 0.05)
 
         // vfx
-        weapon_tip      := get_weapon_tip(player)
-        particle_dir    := get_weapon_dir(player)
-        spawn_particles_direction(&pixel_particles, weapon_tip, +particle_dir, 10, min_speed = 300, max_speed = 2000, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.1, drag = 10)
-        particle_dir     = rl.Vector2Rotate(particle_dir, math.PI / 2)
-        spawn_particles_direction(&pixel_particles, weapon_tip, -particle_dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.2, drag = 10)
-        spawn_particles_direction(&pixel_particles, weapon_tip, +particle_dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = rl.YELLOW, angle = 0.2, drag = 10)
+        weapon_tip := get_weapon_tip(player)
+        weapon_dir := get_weapon_dir(player)
+        emit_muzzle_blast(&pixel_particles, weapon_tip, weapon_dir, rl.YELLOW)
 
         // Spawn `count` number of projectiles.
         for i in 0..<weapon.count {
-            shoot(&projectiles, player, weapon, weapon_tip, get_weapon_dir(player))
+            shoot_weapon(&projectiles, weapon, weapon_tip, weapon_dir)
         }
     }
 }
 
-shoot :: proc(projectiles : ^Projectiles, player : Player, weapon : Weapon, pos, dir : rl.Vector2, color := rl.ORANGE) {
+emit_muzzle_blast :: proc(ps : ^ParticleSystem, pos, dir : rl.Vector2, col : rl.Color) {
+    spawn_particles_direction(ps, pos, +dir, 10, min_speed = 300, max_speed = 2000, min_lifetime = 0.05, max_lifetime = 0.1, color = col, angle = 0.1, drag = 10)
+    dir := rl.Vector2Rotate(dir, math.PI / 2)
+    spawn_particles_direction(ps, pos, -dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = col, angle = 0.2, drag = 10)
+    spawn_particles_direction(ps, pos, +dir, 5, min_speed = 300, max_speed = 500, min_lifetime = 0.05, max_lifetime = 0.1, color = col, angle = 0.2, drag = 10)
+}
+
+shoot_weapon :: proc(projectiles : ^Projectiles, weapon : Weapon, pos, dir : rl.Vector2, color := rl.ORANGE) {
     dir := rl.Vector2Rotate(dir, rand.float32_range(-weapon.spread, weapon.spread))
     actual_speed := weapon.speed * rand.float32_range(0.95, 1)
     add_projectile(

@@ -24,7 +24,7 @@ Projectiles :: struct {
     homing_dist         : int,  // How far (in grid cells) projectiles search for a homing target
     deflect_off_window  : bool, // When true, projectiles will bounce of the edges of the game window
     count               : int,  // The number of active projectile instances in the pool
-    instances           : [MAX_PROJECTILES]Projectile,
+    instances           : []Projectile,
 }
 
 // Init functions are called when the game first starts.
@@ -34,15 +34,22 @@ init_projectiles :: proc(using projectiles : ^Projectiles) {
     homing_speed = 0
     homing_dist = 0
     deflect_off_window = false
+    instances = make([]Projectile, MAX_PROJECTILES)
+}
+
+unload_projectiles :: proc(using projectiles : ^Projectiles) {
+    delete(instances)
 }
 
 // Tick functions are called every frame by the game.
 // Move each projectile forward based on their speed.
-tick_projectiles :: proc(using projectiles : ^Projectiles, enemies : Enemies, dt : f32) {
+tick_projectiles :: proc(using projectiles : ^Projectiles, dt : f32) {
     #no_bounds_check for &proj in projectiles.instances {
         proj.pos += proj.dir * proj.spd * dt
     }
+}
 
+tick_player_projectiles :: proc(using projectiles : ^Projectiles, enemies : Enemies, dt : f32) {
     if homing_dist > 0 {
         #no_bounds_check for &proj, proj_idx in projectiles.instances[0:count] {
             closest_enemy_distance  : f32 = max(f32)
@@ -86,6 +93,15 @@ tick_projectiles :: proc(using projectiles : ^Projectiles, enemies : Enemies, dt
 // Each projectile is just a line from its position along its direction of movement
 draw_projectiles :: proc(using projectiles : ^Projectiles, opacity : f32 = 1) {
     rl.rlSetLineWidth(2)
+    #no_bounds_check for i in 0..<count {
+        using inst := instances[i]
+        rl.DrawLineV(pos, pos + dir * len, rl.ColorAlpha(col, opacity))
+    }
+}
+
+// Variant of the previous function specifically for enemy projectiles
+draw_enemy_projectiles :: proc(using projectiles : ^Projectiles, opacity : f32 = 1) {
+    rl.rlSetLineWidth(4)
     #no_bounds_check for i in 0..<count {
         using inst := instances[i]
         rl.DrawLineV(pos, pos + dir * len, rl.ColorAlpha(col, opacity))

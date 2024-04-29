@@ -83,7 +83,7 @@ tick_pickups :: proc(using game : ^Game) {
             if pickup.hp > 0 {
                 for pickup_action in pickups.hp_pickup_actions do pickup_action(game, pickup)
                 if pickup.hp > 0 {
-                    game.player.hth = min(game.player.hth + f32(pickup.hp), game.player.max_hth)
+                    game.player.hth = min(game.player.hth + pickup.hp, game.player.max_hth)
                     try_play_sound(&audio, audio.collect_xp)
                 }
             }

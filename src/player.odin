@@ -22,8 +22,8 @@ EmitThrustParticleAction :: proc(game : ^Game)
 
 // I have no idea compelled me to use 3-character abbreviations, but I can't rename them easily with OLS :(
 Player :: struct {
-    max_hth     : f32,          // Max health
-    hth         : f32,          // Current health
+    max_hth     : int,          // Max health
+    hth         : int,          // Current health
     rot         : f32,          // Rotation (radians)
     pos         : rl.Vector2,   // Position
     vel         : rl.Vector2,   // Velocity

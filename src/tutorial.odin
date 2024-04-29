@@ -15,19 +15,12 @@ init_tutorial :: proc(using tut : ^Tutorial) {
 }
 
 start_tutorial :: proc(using game : ^Game) {
-    tutorial_enemy : Enemy = {
-        pos     = rl.Vector2 { f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()) } / 2.0 + rl.Vector2 { 0, - 200 },
-        vel     = 0,
-        siz     = ENEMY_SIZE,
-        hp      = 1,
-        dmg     = 0,
-        loot    = 0,
-        col     = rl.RED,
-        id      = 0,
-    }
+    // Add the new tutorial enemy to the pool of enemies
+    add_archetype_enemy(&enemies, .Tutorial, 
+        pos = rl.Vector2 { f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()) } / 2.0 + rl.Vector2 { 0, - 200 },
+        vel = 0
+    )
 
-    // Add the new enemy to the pool of enemies
-    add_enemy(tutorial_enemy, &enemies)
     rl.PlayMusicStream(audio.tutorial)
 }
 

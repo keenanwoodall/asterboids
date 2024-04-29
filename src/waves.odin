@@ -101,18 +101,6 @@ spawn_enemies :: proc(
     cluster_idx     : int,
     game            : ^Game, 
     spawner_proc    : proc(rng: ^rand.Rand, wave, cluster: int)->rl.Vector2) {
-    
-    // This is probably a silly way to go about this, but to author the three enemy variants
-    // I'm using this struct to store the relevant parameters.
-    Archetype :: struct { size : f32, hp : int, dmg : f32, loot : int, color : rl.Color}
-
-    // Each archetype is stored in this array.
-    @(static)
-    Archetypes := [?]Archetype {
-        { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 35, loot = 1, color = rl.RED },
-        { size = ENEMY_SIZE * 1.5, hp = 2, dmg = 50, loot = 3, color = rl.ORANGE },
-        { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 90, loot = 7, color = rl.SKYBLUE } 
-    }
 
     // Calculate our loot multiplier
     loot_multiplier : int = 1
@@ -124,37 +112,28 @@ spawn_enemies :: proc(
         // 70% of the time the archetype will be the little red enemy.
         // 20% of the time it will be the orange enemy.
         // 10% of the time it will be the large blue enemy.
-        archetype : Archetype
+        archetype : EnemyArchetype
         id        : u8
         if x := rand.float32_range(0, 10); x < 7 {
-            archetype = Archetypes[0]
+            archetype = .Small
             id = 0
         }
         else if x < 9 {
-            archetype = Archetypes[1]
+            archetype = .Medium
             id = 1
         }
         else {
-            archetype = Archetypes[2]
+            archetype = .Large
             id = 2
         }
 
-        // Create a new enemy, using the spawner_proc to calculate its position and the archetype
-        // to configure the rest of its parameters.
-        new_enemy : Enemy = {
-            pos     = spawner_proc(&game.waves.cluster_rand, game.waves.wave_idx, cluster_idx),
-            vel     = rl.Vector2Rotate({0, 1}, rand.float32_range(0, linalg.TAU)) * ENEMY_SPEED, // A little random start velocity just cuz
-            siz     = archetype.size,
-            spd     = 1,
-            hp      = archetype.hp,
-            dmg     = archetype.dmg,
-            loot    = archetype.loot * loot_multiplier,
-            col     = archetype.color,
-            id      = id,
-        }
-
         // Add the new enemy to the pool of enemies
-        add_enemy(new_enemy, &game.enemies)
+        add_archetype_enemy(
+            &game.enemies, 
+            archetype, 
+            pos = spawner_proc(&game.waves.cluster_rand, game.waves.wave_idx, cluster_idx), 
+            vel = rl.Vector2Rotate({0, 1}, rand.float32_range(0, linalg.TAU)) * ENEMY_SPEED,
+        )
     }
 }
 
