@@ -67,20 +67,23 @@ Enemies :: struct {
 Archetype :: struct { size : f32, hp, dmg : int, spd : f32, loot : int, color : rl.Color, rate : f64, action : EnemyAction}
 
 // Each archetype is stored in this array.
-// Created enemies are assigned an id which correlates with their indexc in this array.
+// Created enemies are assigned an id which correlates with their index in this array.
 EnemyArchetype :: enum u8 { Small, Medium, Large, Tutorial }
 Archetypes := map[EnemyArchetype]Archetype {
-    .Small = { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 35, spd = 1, loot = 1, color = rl.RED },
+    .Small = { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 35, spd = 1, loot = 1, color = rl.YELLOW },
     .Medium = { size = ENEMY_SIZE * 1.5, hp = 2, dmg = 50, spd = 1, loot = 3, color = rl.ORANGE,
+        // Medium enemies roll a dice for whether they will shoot once per second
         rate = 1,
         action = proc(enemy : ^Enemy, game : ^Game) {
             // Chance that enemy shoots
             if rand.float32_range(0, 1) < 0.3 do return
             enemy_speed := linalg.length(enemy.vel)
+            // Enemy must be moving
             if enemy_speed > 0 {
                 dir_to_player := linalg.normalize(game.player.pos - enemy.pos)
                 player_alignment := linalg.dot(enemy.vel / enemy_speed, dir_to_player)
 
+                // and must be mostly facing the player
                 if player_alignment < 0.5 do return
 
                 dir_to_player = rl.Vector2Rotate(dir_to_player, rand.float32_range(-ENEMY_PROJECTILE_SPREAD, ENEMY_PROJECTILE_SPREAD))
@@ -101,13 +104,13 @@ Archetypes := map[EnemyArchetype]Archetype {
             }
         } 
     },
-    .Large = { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 90, spd = 1, loot = 7, color = rl.SKYBLUE,
+    .Large = { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 90, spd = 1, loot = 7, color = rl.RED,
         rate = 3,
         action = proc(enemy : ^Enemy, game : ^Game) {
             // todo: spawn hazard
         },
     },
-    .Tutorial = { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 0, spd = 0, loot = 5, color = rl.RED }
+    .Tutorial = { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 0, spd = 0, loot = 5, color = rl.YELLOW }
 }
 
 // Init functions are called when the game first starts.
