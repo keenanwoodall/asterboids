@@ -4,6 +4,8 @@ I ended up spending a bit more time on it because I was learning a lot and havin
 
 https://github.com/keenanwoodall/asterboid/assets/9631530/bce23a20-0bc5-40b5-a939-a0e5d32bfbc7
 
+**Disclaimer**: While you're free to do what you like with the code, the audio files are not mine to give. The game runs without them just fine if needed, and there are no other assets.
+
 ---
 
 ## Introduction
