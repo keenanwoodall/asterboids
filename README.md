@@ -60,6 +60,9 @@ for cell in grid
 
 run_jobs()
 ```
+More boids, yay!
+
+![ezgif-3-1f0dd15892](https://github.com/keenanwoodall/asterboid/assets/9631530/6c3c18e8-75e2-451a-8ddf-737fcfcdb245)
 
 ### Gameplay Modifiers
 Whenever the player levels up they can pick one of three random level-up choices. Each choice is represented by a struct that stores a function for ensuring the modifier is valid given the current game state, and another for actually applying it to the game-state
@@ -89,4 +92,4 @@ ModifierChoices := [ModifierType]Modifier {
 
 ### Summary
 
-I had quite a positive experience learning the basics of Odin and am looking forward to using it for more projects in the future. Odin provides a butter-smooth entry into low-level programming and I appreciate the lessons its design taught me about writing simpler code. I think there's some good bones here for a proper game so I may continue hacking on it in the future, but for now I've got other projects I need to get back to :)
+I had quite a positive experience learning the basics of Odin and am looking forward to using it for more projects in the future. Odin provides a buttery-smooth entry into low-level programming and I appreciate the lessons its design taught me about writing simpler code. I think there's some good bones here for a proper game so I may continue hacking on it in the future, but for now I've got other projects I need to get back to :)
