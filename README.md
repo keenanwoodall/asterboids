@@ -30,7 +30,7 @@ This is what the trail effect looks like with the displacement applied. The dist
 
 ![trail advect](https://github.com/keenanwoodall/asterboid/assets/9631530/7527bc30-37eb-4fc2-9095-b0236af5b264)
 
-I actually think it looks good as-is, but as a final step I wanted the smoke to disperse over time. Rather than adding a blur pass, I'm simply setting the filter-mode of the trail render-texture to BILINEAR. This "blurs" each sample a softens the smoke over time.
+I actually think it looks good as-is, but as a final step I wanted the smoke to disperse over time. Rather than adding a blur pass, I'm simply setting the filter-mode of the trail render-texture to BILINEAR. This "blurs" each sample, softening the smoke over time.
 
 ![trail disperse](https://github.com/keenanwoodall/asterboid/assets/9631530/b66b1d72-28b2-4b38-8e7e-4355a6b8e1b6)
 
