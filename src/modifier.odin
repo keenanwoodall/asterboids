@@ -26,7 +26,7 @@ ModifierType :: enum {
     OverflowBarrage,
     ThrusterBarrage,
     AdrenalineRush,
-    ChronalDisruptor,
+    ChronalNavigator,
     RangeFinder,
     RetrofireOverdrive,
 }
@@ -178,9 +178,9 @@ ModifierChoices := [ModifierType]Modifier {
             })
          }
     },
-    .ChronalDisruptor = {
-        type        = .ChronalDisruptor,
-        name        = "Chronal ",
+    .ChronalNavigator = {
+        type        = .ChronalNavigator,
+        name        = "Chronal Navigator",
         description = "Slows time when enemies are near",
         single_use  = true,
         on_choose   = proc(game : ^Game) { 

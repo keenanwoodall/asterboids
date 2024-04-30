@@ -59,7 +59,7 @@ init_player :: proc(using player : ^Player) {
     vel = { 0, 0 }
     dash_vel = { 0, 0 }
     dash_ref = { 0, 0 }
-    dash_dur = 0.1
+    dash_dur = 0.15
     dash_spd = 250
     acc = PLAYER_ACCELERATION
     trq = PLAYER_TURN_SPEED
@@ -72,7 +72,7 @@ init_player :: proc(using player : ^Player) {
     thruster_volume = 0
     last_damage_time = -1000
 
-    thruster_particle_timer = { rate = 100 }
+    thruster_particle_timer = { rate = 200 }
     thruster_proj_timer = { rate = 10 }
     dash_particle_timer = { rate = 100 }
 
@@ -121,17 +121,17 @@ tick_player :: proc(using game : ^Game) {
                 emit_count  := tick_timer(&player.thruster_particle_timer, game_delta_time)
 
                 spawn_particles_direction(
-                    particle_system = &line_particles, 
+                    particle_system = &line_trail_particles, 
                     center          = get_player_base(player),
                     direction       = -dir, 
                     count           = emit_count, 
-                    min_speed       = 200,
-                    max_speed       = 1000,
+                    min_speed       = 100,
+                    max_speed       = 400,
                     min_lifetime    = 0.1,
-                    max_lifetime    = 0.5,
+                    max_lifetime    = 0.3,
                     size            = { 1, 10 },
                     color           = rl.Color{ 102, 191, 255, 50 },
-                    angle           = .2,
+                    angle           = .3,
                     drag            = 5,
                 )
             }
@@ -220,7 +220,7 @@ draw_player :: proc(using game : ^Game) {
 draw_player_trail :: proc(using game : ^Game) {
     if !player.alive do return
 
-    color := rl.SKYBLUE
+    color := rl.BLUE
     speed      := linalg.length(player.vel)
     dash_speed := linalg.length(player.dash_vel)
     color.a = 255 if dash_speed > 0.75 else 10
@@ -254,11 +254,15 @@ get_player_base :: proc(using player : Player) -> rl.Vector2 {
 get_player_corners :: proc(using player : Player, scale : f32 = 1) -> [3]rl.Vector2 {
     // Start by defining the offsets of each vertex
     corners := [3]rl.Vector2 { {-0.75, -1}, {+0.75, -1}, {0, +1.5} } * scale
+    // We'll add some squash and stretch when dashing
+    undershoot :: proc(x: f32) -> f32 { return 2.70158 * x * x * x * x - 1.70158 * x * x; }
+    stretch := 1 + undershoot(math.smoothstep(f32(0.1), dash_spd, linalg.length(dash_vel))) * 0.8
     // Iterate over each vertex and transform them based on the player's position, rotation and size
-    for i in 0..<3 {
-        corners[i] = rl.Vector2Rotate(corners[i], rot - math.PI / 2)
-        corners[i] *= siz
-        corners[i] += pos
+    for &corner in corners {
+        corner *= rl.Vector2{ 1 / stretch, stretch }
+        corner = rl.Vector2Rotate(corner, rot - math.PI / 2)
+        corner *= siz
+        corner += pos
     }
     return corners
 }
