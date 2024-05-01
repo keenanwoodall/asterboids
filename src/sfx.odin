@@ -25,7 +25,7 @@ Audio :: struct {
     dash : rl.Sound,
     pickup : rl.Sound,
     explosion : rl.Sound,
-    player_explosion : rl.Sound, // also played when the player dies
+    mine_explosion : rl.Sound, // also played when the player dies
     collect_xp : rl.Sound,
     collect_hp : rl.Sound,
     level_up : rl.Sound,
@@ -56,7 +56,7 @@ load_audio :: proc(using audio : ^Audio) {
     dash            = rl.LoadSound("res/sfx/dash.wav")
     pickup          = rl.LoadSound("res/sfx/pickup.wav")
     explosion       = rl.LoadSound("res/sfx/enemy_explosion.wav")
-    player_explosion = rl.LoadSound("res/sfx/player_explosion.wav")
+    mine_explosion  = rl.LoadSound("res/sfx/mine_explosion.wav")
 
     collect_hp      = rl.LoadSound("res/sfx/collect_hp.wav")
     collect_xp      = rl.LoadSound("res/sfx/collect_xp.wav")
@@ -67,7 +67,7 @@ load_audio :: proc(using audio : ^Audio) {
     rl.SetSoundVolume(damage, 0.3)
     rl.SetSoundVolume(dash, 0.2)
     rl.SetSoundVolume(die, 0.5)
-    rl.SetSoundVolume(player_explosion, 0.5)
+    rl.SetSoundVolume(mine_explosion, 0.5)
     rl.SetSoundVolume(deflect, 0.15)
     rl.SetSoundVolume(explosion, 0.2)
     rl.SetSoundVolume(impact, 0.2)
@@ -98,6 +98,7 @@ unload_audio :: proc(using audio : ^Audio) {
     rl.UnloadSound(dash)
     rl.UnloadSound(pickup)
     rl.UnloadSound(explosion)
+    rl.UnloadSound(mine_explosion)
     rl.UnloadSound(collect_hp)
     rl.UnloadSound(collect_xp)
     rl.UnloadSound(level_up)

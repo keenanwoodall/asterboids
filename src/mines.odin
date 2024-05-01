@@ -124,31 +124,38 @@ tick_destroyed_mines :: proc(using game : ^Game) {
             }
         }
 
-        spawn_particles_burst(&pixel_particles, mine.pos, 
-            velocity = 0, 
-            count = 64, 
-            min_speed = 100, 
-            max_speed = 700, 
-            min_duration = 0.1, 
-            max_duration = .3, 
-            color = rl.ORANGE, 
-            drag = 6,
-            size = 4,
-        )
+        // Spawn vfx
+        {
+            spawn_particles_burst(&pixel_particles, mine.pos, 
+                velocity = 0, 
+                count = 64, 
+                min_speed = 100, 
+                max_speed = 700, 
+                min_duration = 0.1, 
+                max_duration = .3, 
+                color = rl.ORANGE, 
+                drag = 6,
+                size = 4,
+            )
+    
+            spawn_particles_burst(&line_particles, mine.pos, 
+                velocity = 0,
+                count = 32, 
+                min_speed = 200, 
+                max_speed = 900,
+                min_duration = 0.1, 
+                max_duration = .4,
+                color = rl.YELLOW,
+                drag = 4,
+                size = { 1, 30 },
+                angle_offset = math.PI / 2,
+            )
+        }
 
-        spawn_particles_burst(&line_particles, mine.pos, 
-            velocity = 0,
-            count = 32, 
-            min_speed = 200, 
-            max_speed = 900,
-            min_duration = 0.1, 
-            max_duration = .4,
-            color = rl.YELLOW,
-            drag = 4,
-            size = { 1, 30 },
-            angle_offset = math.PI / 2,
-        )
+        // Play sfx
+        try_play_sound(&audio, audio.mine_explosion)
 
+        // Release the mine
         release_pool(&mines.pool, i)
         i -= 1
     }
