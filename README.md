@@ -105,6 +105,7 @@ To ease the gameplay testing process there are a few keyboard shortcuts:
 - `R` - restart
 - `N` - clear current wave and spawn next. helpful for quickly skipping ahead to waves with more enemies
 - `L` - level up immediately
+- `M` - mute music
 
 ## Editing
 
