@@ -48,9 +48,11 @@ tick_player_enemy_collision :: proc(using game : ^Game) {
     // Note: Checking the enemies in the same cell as the player is not quite thorough
     // because the player could be overlapping multiple cells.
     // In practice, this has been fine tho
+}
 
+tick_killed_player :: proc(using game : ^Game) {
     // If the players health is 0, indicate they are no longer alive and spawn some death particles.
-    if player.hth <= 0 {
+    if player.hth <= 0 && player.alive {
         player.alive = false
         player.hth = 0
 
@@ -58,6 +60,7 @@ tick_player_enemy_collision :: proc(using game : ^Game) {
         spawn_particles_burst(&line_trail_particles, player.pos, player.vel, 128, 200, 1200, 0.2, 1.5, rl.RAYWHITE, drag = 3)
         spawn_particles_burst(&line_particles, player.pos, player.vel, 64, 100, 1500, 0.3, 1.5, rl.SKYBLUE, drag = 2)
         try_play_sound(&audio, audio.die)
+        try_play_sound(&audio, audio.player_explosion)
     }
 }
 
