@@ -69,7 +69,7 @@ Whenever the player levels up they can pick one of three random level-up choices
 ```js
 Modifier :: struct {
     name        : cstring,                      // Name of the modifier. Shown in the level up gui
-    description : cstring,                      // Description of the modifier. Shown in the level up gui
+    description : cstring,                      // Descriptiaon of the modifier. Shown in the level up gui
     is_valid    : proc(game : ^Game) -> bool,   // Function that can be called to check if a modifier is valid
     on_choose   : proc(game : ^Game),           // Function that can be called to apply the modifier to the current game state
 }
@@ -90,6 +90,49 @@ ModifierChoices := [ModifierType]Modifier {
 }
 ```
 
-### Summary
+## Summary
 
 I had quite a positive experience learning the basics of Odin and am looking forward to using it for more projects in the future. Odin provides a buttery-smooth entry into low-level programming and I appreciate the lessons its design taught me about writing simpler code. I think there's some good bones here for a proper game so I may continue hacking on it in the future, but for now I've got other projects I need to get back to :)
+
+## Testing
+
+I'm version controlling the executable that's built during the development process, so if you're on Windows you can run that. However I'd recommend just building it just takes a second. 
+Simply run `odin run src/ asterboids.exe`
+
+I am developing on Windows and haven't tested on any other platforms so if you run into any issues let me know.
+
+To ease the gameplay testing process there are a few keyboard shortcuts:
+- `R` - restart
+- `N` - clear current wave and spawn next. helpful for quickly skipping ahead to waves with more enemies
+- `L` - level up immediately
+
+## Editing
+
+All of the source code lives in the src/ folder. The entry point into the application is `app.odin`. Within this file is a simple application loop which calls `tick_game()` and `draw_game()`, passing a `Game`  struct.
+
+The `Game` struct holds the entire state of the game. This state is broken up into high-level "systems" like `Enemies`, `Projectiles`, `Player` etc. The `tick_game` and `draw_game` procedures then delegate ticking/drawing to various procedures used by the sub-systems like.
+
+With that in mind, if you want to explore the code-base and start making changes I'd recommend starting from the `tick_game` procedure for game logic and `draw_game` for game rendering. You can drill down into any of the subsystem's draw/tick procedures that catch your interest.
+
+If you're looking for some low-hanging fruit here are some fun/easy things you can mess with:
+- **Create your own level-up perk**: Find the `ModifierChoices` map near the top of `modifier.odin` and declare a new `Modifier`. You can also reference the other modifiers to see how they're authored, but the main thing is to assign an `on_choose` callback function and modify the `Game` state however you like from within it. 
+- **Give the mouse a smokey trail**: Find where smoke trails are drawn at the top of `draw_game()` proc in `game.odin`. Simply draw a circle at the mouse's position `rl.DrawCircleV(rl.GetMousePosition(), 5, rl.BLUE)`
+- **Invincibility**: Find the `tick_game` function in `game.odin` and comment out the `tick_killed_player()` call
+
+<details>
+  <summary><h2>Updates</h2></summary>
+  
+  ### Improved Flocking
+
+  Enemies prioritize following the player less when far away. This helps avoid boids glomming into one big heap and allows them to do more boid-like behavior. Enemies arrive "in formation", and when close, appear to enter a sort of aggro state.
+  
+  ![image](https://github.com/keenanwoodall/asterboid/assets/9631530/898505db-8c75-4f6e-b8c2-c2c71cf2f711)
+
+  ### Squash and Stretch
+
+  The player now has procedural squash and stretch animation when dashing
+
+  ![asterboid_eCDUk3cDb3](https://github.com/keenanwoodall/asterboid/assets/9631530/a000c040-f3b7-4f50-9895-fd72252b92f0)
+
+  
+</details>
