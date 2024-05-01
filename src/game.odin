@@ -153,6 +153,7 @@ tick_game :: proc(using game : ^Game) {
 
         tick_player_projectile_collision(game)
         tick_projectiles_screen_collision(&projectiles)
+        tick_projectiles_screen_collision(&enemy_projectiles)
         tick_projectiles_enemy_collision(&projectiles, &enemies, &pixel_particles, &audio)
         tick_killed_enemies(&enemies, &pickups, &line_particles)
         tick_particles(&pixel_particles, game_delta_time)
