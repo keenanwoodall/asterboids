@@ -13,7 +13,7 @@ uniform float time;
 uniform float dt;
 uniform ivec2 res;
 
-out vec4 output;
+out vec4 output_color;
 
 //
 // Description : Array and textureless GLSL 2D/3D/4D simplex 
@@ -154,10 +154,10 @@ void main() {
     float force = 0.1;
     uv += noiseDir * force * drag * dt;
 
-    vec4 input = texture(texture0, uv);
+    vec4 input_color = texture(texture0, uv);
 
-    input.a -= .5 * dt;
-    input.a /= 1 + (5 * dt);
+    input_color.a -= .5 * dt;
+    input_color.a /= 1 + (5 * dt);
 
-    output = input;
+    output_color = input_color;
 }
