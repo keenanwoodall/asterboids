@@ -36,7 +36,7 @@ tick_tutorial :: proc(using game : ^Game) {
 }
 
 draw_tutorial :: proc(using game : ^Game) {
-    INSTRUCTIONS :: "A\t\t\t\tTurn Left\n\nD\t\t\t\tTurn Right\n\nW\t\t\t\tActivate Thruster\n\nLMB\t\t\tShoot\n\n\n\n\nKill Enemy To Start Game"
+    INSTRUCTIONS :: "A\t\t\t\t\t\tTurn Left\n\nD\t\t\t\t\t\tTurn Right\n\nW\t\t\t\t\t\tActivate Thruster\n\nL Shift\t\t\tDash\n\nLMB\t\t\t\t\tShoot\n\n\n\n\nKill Enemy To Start Game"
     rect := centered_label_rect(centered_rect(200, 200), INSTRUCTIONS, 20)
     rl.DrawText(INSTRUCTIONS, i32(rect.x), i32(rect.y) + 300, 20, rl.WHITE)
 }
