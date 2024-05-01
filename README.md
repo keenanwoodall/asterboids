@@ -96,7 +96,7 @@ I had quite a positive experience learning the basics of Odin and am looking for
 
 ## Testing
 
-I'm version controlling the executable that's built during the development process, so if you're on Windows you can run that. However I'd recommend just building it just takes a second. 
+I'm version controlling the executable that's built during the development process, so if you're on Windows you can run that. However I'd recommend just building it, it just takes a second. 
 Simply run `odin run src/ asterboids.exe`
 
 I am developing on Windows and haven't tested on any other platforms so if you run into any issues let me know.
@@ -110,7 +110,7 @@ To ease the gameplay testing process there are a few keyboard shortcuts:
 
 All of the source code lives in the src/ folder. The entry point into the application is `app.odin`. Within this file is a simple application loop which calls `tick_game()` and `draw_game()`, passing a `Game`  struct.
 
-The `Game` struct holds the entire state of the game. This state is broken up into high-level "systems" like `Enemies`, `Projectiles`, `Player` etc. The `tick_game` and `draw_game` procedures then delegate ticking/drawing to various procedures used by the sub-systems like.
+The `Game` struct holds the entire state of the game. This state is broken up into high-level "systems" like `Enemies`, `Projectiles`, `Player` etc. The `tick_game` and `draw_game` procedures then delegate ticking/drawing to various procedures used by the sub-systems.
 
 With that in mind, if you want to explore the code-base and start making changes I'd recommend starting from the `tick_game` procedure for game logic and `draw_game` for game rendering. You can drill down into any of the subsystem's draw/tick procedures that catch your interest.
 
