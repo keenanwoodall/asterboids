@@ -116,7 +116,7 @@ The `Game` struct holds the entire state of the game. This state is broken up in
 With that in mind, if you want to explore the code-base and start making changes I'd recommend starting from the `tick_game` procedure for game logic and `draw_game` for game rendering. You can drill down into any of the subsystem's draw/tick procedures that catch your interest.
 
 If you're looking for some low-hanging fruit here are some fun/easy things you can mess with:
-- **Create your own level-up perk**: Find the `ModifierChoices` map near the top of `modifier.odin` and declare a new `Modifier`. You can also reference the other modifiers to see how they're authored, but the main thing is to assign an `on_choose` callback function and modify the `Game` state however you like from within it. 
+- **Create your own level-up perk**: Find the `ModifierChoices` map near the top of `modifier.odin` and declare a new `Modifier`, referencing the other modifiers to see how they're authored.
 - **Give the mouse a smokey trail**: Find where smoke trails are drawn at the top of `draw_game()` proc in `game.odin`. Simply draw a circle at the mouse's position `rl.DrawCircleV(rl.GetMousePosition(), 5, rl.BLUE)`
 - **Invincibility**: Find the `tick_game` function in `game.odin` and comment out the `tick_killed_player()` call
 
