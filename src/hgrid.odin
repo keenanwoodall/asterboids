@@ -36,7 +36,7 @@ HGrid :: struct($T : typeid) {
 }
 
 // Allocates data used by the grid and initializes the cell size
-init_cell_data :: proc(grid : ^HGrid($T), cell_size : f32){
+init_grid :: proc(grid : ^HGrid($T), cell_size : f32){
     grid.cell_size = cell_size
     grid.cells     = make(map[int2][dynamic]T)
     grid.min       = { math.max(int), math.max(int) }
@@ -44,15 +44,15 @@ init_cell_data :: proc(grid : ^HGrid($T), cell_size : f32){
 }
 
 // Frees data allocated by the grid
-delete_cell_data :: proc(using grid : HGrid($T)) {
+delete_grid :: proc(using grid : HGrid($T)) {
     for cell_coord, &data in cells do delete(data)
     delete(cells)
 }
 
 // Clears all data stored in the grid cells
-clear_cell_data :: proc(using grid : ^HGrid($T)) {
-    grid.min       = { math.max(int), math.max(int) }
-    grid.max       = { math.min(int), math.min(int) }
+clear_grid :: proc(using grid : ^HGrid($T)) {
+    grid.min = { math.max(int), math.max(int) }
+    grid.max = { math.min(int), math.min(int) }
     
     for cell_coord, &data in cells {
         if len(data) == 0 {
@@ -74,7 +74,7 @@ get_cell_pos :: #force_inline proc(using grid : HGrid($T), pos : float2) -> floa
 }
 
 // Inserts data into a cell
-insert_cell_data :: proc(using grid : ^HGrid($T), cell_coord : int2, data : T, allocator := context.allocator) {
+insert_grid_data :: proc(using grid : ^HGrid($T), cell_coord : int2, data : T, allocator := context.allocator) {
     // Get the current values stored in the cell, and whether the cell even exists yet
     values, ok := cells[cell_coord]
     

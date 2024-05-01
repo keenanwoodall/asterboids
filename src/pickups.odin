@@ -47,7 +47,7 @@ init_pickups :: proc(using pickups : ^Pickups) {
     attraction_radius = PICKUP_ATTRACTION_RADIUS
     hp_pickup_actions = make([dynamic]PickupAction)
     xp_pickup_actions = make([dynamic]PickupAction)
-    pool_init(&pool)
+    init_pool(&pool)
 }
 
 // Unload functions are called when the game is closed or restarted.
@@ -55,7 +55,7 @@ init_pickups :: proc(using pickups : ^Pickups) {
 unload_pickups :: proc(using pickups : ^Pickups) {
     delete(hp_pickup_actions)
     delete(xp_pickup_actions)
-    pool_delete(&pool)
+    delete_pool(&pool)
 }
 
 // Tick functions are called every frame by the game.
@@ -89,7 +89,7 @@ tick_pickups :: proc(using game : ^Game) {
             }
             // Spawn some particles and release the pickup
             spawn_particles_burst(&line_particles, player.pos, pickup.vel * 0.5, 32, 50, 200, 0.2, 0.5, pickup.col, drag = 3)
-            pool_release(&pickups.pool, i)
+            release_pool(&pickups.pool, i)
             // Make sure we decrement i so our loop compensates for the removed pickup!
             i -= 1
             continue
@@ -112,7 +112,7 @@ tick_pickups :: proc(using game : ^Game) {
 
         // Release the pickup if it has lived longer than the pickup lifetime
         if pickup.time > PICKUP_LIFETIME {
-            pool_release(&pickups.pool, i)
+            release_pool(&pickups.pool, i)
             // Make sure we decrement i so our loop compensates for the removed pickup!
             i -= 1
         }
@@ -151,5 +151,5 @@ spawn_pickup :: proc(using pickups : ^Pickups, pos : rl.Vector2, type : PickupTy
     // Give the pickup a random initial velocity
     new_pickup.vel = rl.Vector2Rotate({0, rand.float32_range(0, 100)}, rand.float32_range(0, math.TAU))
 
-    pool_add(&pool, new_pickup)
+    add_pool(&pool, new_pickup)
 }

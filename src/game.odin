@@ -17,6 +17,7 @@ Game :: struct {
     leveling          : Leveling,     // Player xp, level and other state related to leveling up.
     weapon            : Weapon,       // Fire rate, spread, kick etc.
     enemies           : Enemies,      // Pool of enemies, each with health, velocity etc.
+    mines             : Mines,        // Pool of mines which can damage the player.
     waves             : Waves,        // Manages when waves of enemies are spawned, and how many.
     pickups           : Pickups,      // Pool of pickups dropped by enemies.
     audio             : Audio,        // Loaded sounds/music available to be played.
@@ -32,14 +33,14 @@ Game :: struct {
     line_particles          : ParticleSystem,   // Another pool of particles, which will be drawn to the screen as lines.
     line_trail_particles    : ParticleSystem,   // This particle system will be drawn to a special trails render texture
                                                 // Note: Other stuff is actually being drawn to the trail rt as well now, just at a very low opacity to remain subtle
-                                                //       This particle system specifically draws at full opacity so it can be used for more prominent trails
+                                                //       This particle system specifically *only* draws to the trail rt whereas the others draw on top of the smoke trail.
 
     on_calc_time_scale      : ActionStack(f32, Game),
 
-    render_target_a         : rl.RenderTexture2D,   // The texture the game is rendered to.
-    render_target_b         : rl.RenderTexture2D,   // The texture the game is rendered to.
+    render_target_a         : rl.RenderTexture2D,   // The render texture the game is rendered to.
+    render_target_b         : rl.RenderTexture2D,   // Another render texture the game is rendered to (double-buffered for post-processing)
     trail_render_target_a   : rl.RenderTexture2D,   // Render target which trails can be drawn to.
-    trail_render_target_b   : rl.RenderTexture2D,   // Render target which trails can be drawn to.
+    trail_render_target_b   : rl.RenderTexture2D,   // Another render target which trails can be drawn to (double-buffered for advection, dispersal)
     shaders                 : map[string]rl.Shader, // Named shaders
 }
 
@@ -47,7 +48,7 @@ Game :: struct {
 load_game :: proc(using game : ^Game) {
     // Create render textures for the game.
     // We use pairs of textures so that we can draw from one texture to another with various shader effects (blitting)
-    // The "render_target" is the texture we draw the game to. Later a crt/vignette effect is applied before being drawn to the screen.
+    // A "render_target" is a texture we draw the game to. Later a crt/vignette effect is applied before being drawn to the screen.
     render_target_a = rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight())
     render_target_b = rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight())
     // The "trail_render_target" textures have specific gameplay elements drawn to them. but rather than being cleared each frame they fade/advect over time.
@@ -83,6 +84,7 @@ load_game :: proc(using game : ^Game) {
     init_leveling(&leveling)
     init_weapon(&weapon)
     init_enemies(&enemies)
+    init_mines(&mines)
     init_waves(&waves)
     init_projectiles(&projectiles)
     init_projectiles(&enemy_projectiles)
@@ -90,6 +92,7 @@ load_game :: proc(using game : ^Game) {
     init_stars(&stars)
     load_audio(&audio)
 
+    // Enable tooltips which are used by the level-up gui
     rl.GuiEnableTooltip()
 
     start_tutorial(game)
@@ -111,6 +114,7 @@ unload_game :: proc(using game : ^Game) {
     unload_projectiles(&projectiles)
     unload_projectiles(&enemy_projectiles)
     unload_enemies(&enemies)
+    unload_mines(&mines)
     unload_waves(&waves)
     unload_pickups(&pickups)
     unload_audio(&audio)
@@ -145,7 +149,9 @@ tick_game :: proc(using game : ^Game) {
         if player.alive && tutorial.complete do tick_waves(game)
 
         tick_enemies(game)
+        tick_mines(game)
         tick_player_enemy_collision(game)
+        tick_player_mines_collision(game)
 
         tick_projectiles(&enemy_projectiles, game_delta_time)
         tick_projectiles(&projectiles, game_delta_time)
@@ -155,7 +161,11 @@ tick_game :: proc(using game : ^Game) {
         tick_projectiles_screen_collision(&projectiles)
         tick_projectiles_screen_collision(&enemy_projectiles)
         tick_projectiles_enemy_collision(&projectiles, &enemies, &pixel_particles, &audio)
+        tick_projectiles_mine_collision(&projectiles, &mines, &pixel_particles, &audio)
+        
         tick_killed_enemies(&enemies, &pickups, &line_particles)
+        tick_destroyed_mines(game)
+
         tick_particles(&pixel_particles, game_delta_time)
         tick_particles(&line_particles, game_delta_time)    
         tick_particles(&line_trail_particles, game_delta_time)    
@@ -175,15 +185,17 @@ draw_game :: proc(using game : ^Game) {
             { "res", [2]i32 { rl.GetScreenWidth(), rl.GetScreenHeight() }},
         )
 
-        // Then draw everything that should have a trail on top.
+        // Then draw everything that should have a trail.
         rl.BeginTextureMode(trail_render_target_b)
-        draw_player_trail(game)
-        draw_particles_as_lines(&line_trail_particles)
-        // eh go ahead and draw the other particles to the trail map as well :P. just with low opacity
-        draw_particles_as_pixels(&pixel_particles, 0.5)
-        draw_particles_as_lines(&line_particles, 0.5)
-        draw_projectiles(&projectiles, 0.5)
-        draw_projectiles(&enemy_projectiles, 0.5)
+        {
+            draw_player_trail(game)
+            draw_particles_as_lines(&line_trail_particles)
+            // eh go ahead and draw the other particles to the trail map as well :P. just with low opacity
+            draw_particles_as_pixels(&pixel_particles, 0.5)
+            draw_particles_as_lines(&line_particles, 0.5)
+            draw_projectiles(&projectiles, 0.5)
+            draw_projectiles(&enemy_projectiles, 0.5)
+        }
         rl.EndTextureMode()
 
         // Finally swap the render textures so that the destination is the source for the next tick.
@@ -205,6 +217,7 @@ draw_game :: proc(using game : ^Game) {
         rl.DrawTextureRec(trail_render_target_a.texture, rl.Rectangle{ 0, 0, f32(render_target_a.texture.width), -f32(render_target_a.texture.height) }, rl.Vector2{ 0, 0 }, rl.WHITE);
 
         // Now that the smoke has been drawn, we can draw the rest of the game on top.
+        draw_mines(game^)
         draw_player(game)
         draw_enemies(&enemies)
         draw_projectiles(&projectiles)

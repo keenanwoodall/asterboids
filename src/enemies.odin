@@ -72,7 +72,7 @@ EnemyArchetype :: enum u8 { Small, Medium, Large, Tutorial }
 Archetypes := map[EnemyArchetype]Archetype {
     .Small = { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 35, spd = 1, loot = 1, color = rl.YELLOW },
     .Medium = { size = ENEMY_SIZE * 1.5, hp = 2, dmg = 50, spd = 1, loot = 3, color = rl.ORANGE,
-        // Medium enemies roll a dice for whether they will shoot once per second
+        // Medium enemies roll a dice for whether they will shoot each time their action is invoked.
         rate = .5,
         action = proc(enemy : ^Enemy, game : ^Game) {
             // Chance that enemy shoots
@@ -105,9 +105,13 @@ Archetypes := map[EnemyArchetype]Archetype {
         } 
     },
     .Large = { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 90, spd = 1, loot = 7, color = rl.RED,
-        rate = 3,
+        rate = 0.25,
         action = proc(enemy : ^Enemy, game : ^Game) {
-            // todo: spawn hazard
+            // Don't spawn any mines if offscreen
+            if enemy.pos.x < 0 || enemy.pos.x > f32(rl.GetScreenWidth()) || enemy.pos.y < 0 || enemy.pos.y > f32(rl.GetScreenHeight()) {
+                return
+            }
+            add_pool(&game.mines.pool, Mine { pos = enemy.pos, hp = MINE_HP, destroyed = false })
         },
     },
     .Tutorial = { size = ENEMY_SIZE * 1.0, hp = 1, dmg = 0, spd = 0, loot = 5, color = rl.YELLOW }
@@ -127,7 +131,7 @@ init_enemies :: proc(using enemies : ^Enemies) {
     // Enemies steer themselves based on the position and velocity of neighboring enemies within a certain radius
     // so we'll set the cell size of the grid to the maximum of those radii
     cell_size : f32 = max(ENEMY_ALIGNMENT_RADIUS, ENEMY_COHESION_RADIUS, ENEMY_SEPARATION_RADIUS)
-    init_cell_data(&grid, cell_size)
+    init_grid(&grid, cell_size)
 }
 
 // Unload functions are called when the game is closed or restarted.
@@ -135,10 +139,10 @@ init_enemies :: proc(using enemies : ^Enemies) {
 unload_enemies :: proc(using enemies : ^Enemies) {
     delete(instances)
     delete(new_instances)
-    delete_cell_data(grid)
+    delete_grid(grid)
 }
 
-// Tick functions are called every frame by the game
+// Tick functions are called every frame by the game. This handles enemy steering and the flocking simulation.
 @(optimization_mode="speed")
 tick_enemies :: proc(using game : ^Game) {
     // The cell data stored by the enemies grid is rebuilt every frame since enemies are constantly moving 
@@ -146,7 +150,7 @@ tick_enemies :: proc(using game : ^Game) {
     // There may be room for optimization here since enemies enemies aren't changing cells each frame,
     // but isolating the enemies whose cell changed would come with it's own performance cost.
     // Needs to be cleared even if enemies.count is zero since some code iterates over enemies via grid cells
-    clear_cell_data(&enemies.grid)
+    clear_grid(&enemies.grid)
 
     // If there aren't any enemies, don't do anything!
     if enemies.count == 0 do return
@@ -166,7 +170,7 @@ tick_enemies :: proc(using game : ^Game) {
         // Get the currenty enemies cell coordinate based on its current position
         // and insert its index into the grid
         cell_coord := get_cell_coord(enemies.grid, pos)
-        insert_cell_data(&enemies.grid, cell_coord, i)
+        insert_grid_data(&enemies.grid, cell_coord, i)
     }
 
     // We will be multithreading the enemy boid simulation. 
@@ -281,7 +285,7 @@ tick_enemies :: proc(using game : ^Game) {
     copy_slice(dst = enemies.instances[:enemies.count], src = enemies.new_instances[:enemies.count]) 
 }
 
-// Draw functions are called at the end of each frame by the game.
+// Draw functions are called at the end of each frame by the game. Draws the enemies to the screen
 draw_enemies :: proc(using enemies : ^Enemies) {
     #no_bounds_check for &enemy in instances[0:count] {
         corners := get_enemy_corners(enemy)
@@ -409,7 +413,7 @@ follow :: proc(index : int, enemies : []Enemy, target : rl.Vector2) -> rl.Vector
 
     // "Interest" is just a way to dampen steering strength as the distance to the player increases
     // Has a knock-on aggro affect since aggro tends to be a positive feedback loop
-    interest := math.lerp(f32(0.05), 1, math.smoothstep(f32(700), 100, dist))
+    interest := math.lerp(f32(0.05), 1, math.smoothstep(f32(600), 100, dist))
 
     steering := offset / dist * f32(ENEMY_SPEED) * interest
     steering -= current.vel
