@@ -156,7 +156,7 @@ void main() {
 
     vec4 input = texture(texture0, uv);
 
-    input.a -= .2 * dt;
+    input.a -= .5 * dt;
     input.a /= 1 + (5 * dt);
 
     output = input;

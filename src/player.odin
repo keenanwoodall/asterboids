@@ -56,9 +56,9 @@ init_player :: proc(using player : ^Player) {
     hth = 100
     rot = -math.PI / 2
     pos = { half_width, half_height + 50 }
-    vel = { 0, 0 }
-    dash_vel = { 0, 0 }
-    dash_ref = { 0, 0 }
+    vel = 0
+    dash_vel = 0
+    dash_ref = 0
     dash_dur = 0.15
     dash_spd = 250
     acc = PLAYER_ACCELERATION
