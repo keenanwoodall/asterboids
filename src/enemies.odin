@@ -231,6 +231,8 @@ tick_enemies :: proc(using game : ^Game) {
             // If (for some reason) there are no enemies in this cell, do nothing!
             if len(cell) == 0 do return
 
+            screen_bounds :=  rl.Rectangle{0, 0, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())}
+
             // Iterate over all the enemy indices in the cell
             for enemy_idx in cell {
                 // Use the index to get the corresponding enemy from the array of enemies which we can "write" to (modify)
@@ -247,6 +249,7 @@ tick_enemies :: proc(using game : ^Game) {
                 if player.alive {
                     steer_force += #force_inline follow(enemy_idx, read, player.pos) * ENEMY_FOLLOW_FACTOR
                 }
+                steer_force += #force_inline contain(enemy_idx, read, screen_bounds)
                 steer_force += #force_inline alignment(enemy_idx, read, grid) * ENEMY_ALIGNMENT_FACTOR
                 steer_force += #force_inline cohesion(enemy_idx, read, grid) * ENEMY_COHESION_FACTOR
                 steer_force += #force_inline separation(enemy_idx, read, grid) * ENEMY_SEPARATION_FACTOR
@@ -398,9 +401,36 @@ check_enemy_line_collision :: proc(line_start, line_end : rl.Vector2, enemy : En
 @(private="file")
 follow :: proc(index : int, enemies : []Enemy, target : rl.Vector2) -> rl.Vector2 {
     current  := enemies[index]
-    steering := linalg.normalize(target - current.pos) * ENEMY_SPEED
+    offset   := target - current.pos
+    dist     := linalg.length(offset)
+
+    // Don't follow if really close
+    if dist < 0.01 do return {}
+
+    // "Interest" is just a way to dampen steering strength as the distance to the player increases
+    // Has a knock-on aggro affect since aggro tends to be a positive feedback loop
+    interest := math.lerp(f32(0.05), 1, math.smoothstep(f32(700), 100, dist))
+
+    steering := offset / dist * f32(ENEMY_SPEED) * interest
     steering -= current.vel
     steering = limit_length(steering, ENEMY_FORCE)
+    return steering
+}
+
+// Steers an enemy to stay within a rectangle
+@(private="file")
+contain :: proc(index : int, enemies : []Enemy, rect : rl.Rectangle) -> rl.Vector2 {
+    current  := enemies[index]
+    target_pos := rl.Vector2 { clamp(current.pos.x, rect.x, rect.x + rect.width), clamp(current.pos.y, rect.y, rect.y + rect.height) }
+    offset := target_pos - current.pos
+    dist := linalg.length(offset)
+
+    if dist < 10 do return {}
+
+    steering := linalg.normalize(offset) * ENEMY_SPEED
+    steering -= current.vel
+    steering = limit_length(steering, ENEMY_FORCE)
+
     return steering
 }
 
