@@ -55,11 +55,20 @@ tick_particles :: proc(using particle_system : ^ParticleSystem, dt: f32) {
 }
 
 // Draw functions are called at the end of each frame by the game
-// Draws a particle system as particles
+// Draws a particle system as pixels
 draw_particles_as_pixels :: proc(using particle_system : ^ParticleSystem, opacity : f32 = 1) {
     for p in particles[0:count] {
         alpha := math.pow((1 - p.tim / p.dur), .5)
         rl.DrawRectangleV(p.pos, {2, 2}, rl.ColorAlpha(p.col, alpha * opacity))
+    }
+}
+
+// Draw functions are called at the end of each frame by the game
+// Draws a particle system as circles
+draw_particles_as_circles :: proc(using particle_system : ^ParticleSystem, opacity : f32 = 1) {
+    for p in particles[0:count] {
+        alpha := math.pow((1 - p.tim / p.dur), .5)
+        rl.DrawCircleV(p.pos, p.siz.x, rl.ColorAlpha(p.col, alpha * opacity))
     }
 }
 
@@ -69,7 +78,7 @@ draw_particles_as_lines :: proc(using particle_system : ^ParticleSystem, opacity
     for p in particles[0:count] {
         alpha := math.pow((1 - p.tim / p.dur), .5)
         p1 := p.pos
-        p2 := p.pos + rl.Vector2Rotate({0, 1} * p.siz.y, p.rot) * alpha
+        p2 := p.pos + rl.Vector2Rotate(p.siz, p.rot) * alpha
         rl.DrawLineV(p1, p2, rl.ColorAlpha(p.col, alpha * opacity))
     }
 }
@@ -126,7 +135,7 @@ spawn_particles_triangle_segments :: proc(
             vel = velocity + linalg.normalize(mid_point - center) * rand.float32_range(min_force, max_force),
             trq = (-1 if rand.float32_range(0, 1) > 0.5 else 1) * rand.float32_range(0, max_torque),
             dur = rand.float32_range(min_lifetime, max_lifetime),
-            siz = {0, dist},
+            siz = {1, dist},
             col = color,
             rot = theta,
             vdg = drag,

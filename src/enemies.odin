@@ -105,7 +105,7 @@ Archetypes := map[EnemyArchetype]Archetype {
         } 
     },
     .Large = { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 90, spd = 1, loot = 7, color = rl.RED,
-        rate = 0.25,
+        rate = 0.2,
         action = proc(enemy : ^Enemy, game : ^Game) {
             // Don't spawn any mines if offscreen
             if enemy.pos.x < 0 || enemy.pos.x > f32(rl.GetScreenWidth()) || enemy.pos.y < 0 || enemy.pos.y > f32(rl.GetScreenHeight()) {
@@ -335,7 +335,7 @@ release_enemy :: proc(index : int, using enemies : ^Enemies) {
 tick_killed_enemies :: proc(using enemies : ^Enemies, pickups : ^Pickups, ps : ^ParticleSystem) {
     for i := 0; i < count; i += 1 {
         using enemy := instances[i]
-        if kill {
+        if hp < 0 || kill {
             release_enemy(i, enemies)
             i -= 1
             kill_count += 1

@@ -1,14 +1,18 @@
 // Manages mine state and logic. Mines are hazards which can explode when hit by the player
 package game
 
+import "core:fmt"
 import "core:math"
 import "core:math/linalg"
 import rl "vendor:raylib"
 
-MINE_RADIUS :: 10
-MINE_DAMAGE :: 100
-MINE_HP     :: 2
-MINE_GRID_CELL_SIZE :: MINE_RADIUS * 4
+MINE_RADIUS             :: 10
+MINE_RADIUS_SQR         :: MINE_RADIUS * MINE_RADIUS
+MINE_DAMAGE_RADIUS      :: 175
+MINE_DAMAGE_RADIUS_SQR  :: MINE_DAMAGE_RADIUS * MINE_DAMAGE_RADIUS
+MINE_DAMAGE             :: 100
+MINE_KNOCKBACK          :: 2000
+MINE_HP                 :: 1
 
 Mines :: struct {
     pool : Pool(500, Mine),     // Pool of mine instances
@@ -25,13 +29,14 @@ Mine :: struct {
 
 init_mines :: proc(mines : ^Mines) {
     init_pool(&mines.pool)
-    init_grid(&mines.grid, MINE_GRID_CELL_SIZE)
+    init_grid(&mines.grid, MINE_DAMAGE_RADIUS)
 }
 
 unload_mines :: proc(mines : ^Mines) {
     delete_pool(&mines.pool)
 }
 
+// Tick functions are called every frame. Rebuilds the mines' hashgrid, increments each mines internal timer and animates its radius.
 tick_mines :: proc(using game : ^Game) {
     player_corners := get_player_corners(player)
     mine_radius_sqr :f32= MINE_RADIUS * MINE_RADIUS
@@ -45,29 +50,104 @@ tick_mines :: proc(using game : ^Game) {
         insert_grid_data(&mines.grid, cell_coord, i)
 
         mine.time += game_delta_time
-        mine.radius = math.lerp(mine.radius, MINE_RADIUS, 1 - math.exp(-game.game_delta_time * 10))
+        mine.radius = math.lerp(mine.radius, MINE_RADIUS, 1 - math.exp(-game.game_delta_time * 5))
     }
 }
 
-tick_player_mines_collision :: proc(using game : ^Game) {
-    player_corners := get_player_corners(player)
-    mine_radius_sqr :f32= MINE_RADIUS * MINE_RADIUS
-    for &mine in mines.pool.instances[0:mines.pool.count] {
-        for corner in player_corners {
-            if linalg.length2(corner - mine.pos) < mine_radius_sqr {
-                player.hth -= MINE_DAMAGE
-                mine.destroyed = true
-            }
-        }
-    }
-}
-
+// Spawns explosion particles and deals damage/knockback to nearby enemies/player/other mines
 tick_destroyed_mines :: proc(using game : ^Game) {
     // Destruction
-    for i :int= 0; i < game.mines.pool.count; i += 1 {
+    for i :int= 0; i < mines.pool.count; i += 1 {
         mine := &mines.pool.instances[i]
 
         if !mine.destroyed && mine.hp > 0 do continue
+
+        // Damage other nearby mines
+        {
+            mine_cell_coord := get_cell_coord(mines.grid, mine.pos)
+
+            for x : int = -1; x <= 1; x += 1 {
+                for y : int = -1; y <= 1; y += 1 {
+                    cell_coord              := mine_cell_coord + { x, y }
+                    mine_indices, exists    := get_cell_data(mines.grid, cell_coord)
+
+                    if !exists do continue
+
+                    for mine_idx in mine_indices {
+                        // if mine_idx == i do continue // Not worth checking. The current mine is destroyed anyways
+                        other_mine := &mines.pool.instances[mine_idx]
+
+                        if linalg.length2(other_mine.pos - mine.pos) > MINE_DAMAGE_RADIUS_SQR {
+                            continue
+                        }
+
+                        other_mine.hp = 0
+                    }
+                }   
+            }
+        }
+
+        // Damage nearby enemies
+        {
+            // The cell coord the mine occupies on the enemy grid
+            mine_enemy_cell_coord := get_cell_coord(enemies.grid, mine.pos)
+
+            enemy_cell_check_radius := int(math.ceil(MINE_DAMAGE_RADIUS / enemies.grid.cell_size))
+
+            for x : int = -enemy_cell_check_radius; x <= enemy_cell_check_radius; x += 1 {
+                for y : int = -enemy_cell_check_radius; y <= enemy_cell_check_radius; y += 1 {
+                    cell_coord              := mine_enemy_cell_coord + { x, y }
+                    enemy_indices, exists   := get_cell_data(enemies.grid, cell_coord)
+                    
+                    if !exists do continue
+
+                    for enemy_idx in enemy_indices {
+                        enemy := &enemies.instances[enemy_idx]
+
+                        dist := linalg.distance(enemy.pos, mine.pos)
+                        if dist > MINE_DAMAGE_RADIUS {
+                            continue
+                        }
+
+                        n_dist := dist / MINE_DAMAGE_RADIUS
+                        // Enemy damage is tuned differently since they have way less health than the player.
+                        // Note: They should instead have health that's comparable to the player so that this is not necessary.
+                        // Damage falloff is done by using the inverse square law
+                        n_damage := inv_sqr_interp(1, 0, n_dist) // 1 -> 0
+                        damage := int(math.floor(n_damage * 10)) // 10 -> 0
+                        enemy.hp -= damage
+                        enemy.vel += linalg.normalize(enemy.pos - mine.pos) * MINE_KNOCKBACK * n_damage
+
+                        fmt.printfln("HP: %i, DMG: %i", enemy.hp, damage)
+                    }
+                }   
+            }
+        }
+
+        spawn_particles_burst(&pixel_particles, mine.pos, 
+            velocity = 0, 
+            count = 64, 
+            min_speed = 100, 
+            max_speed = 700, 
+            min_duration = 0.1, 
+            max_duration = .3, 
+            color = rl.ORANGE, 
+            drag = 6,
+            size = 4,
+        )
+
+        spawn_particles_burst(&line_particles, mine.pos, 
+            velocity = 0,
+            count = 32, 
+            min_speed = 200, 
+            max_speed = 900,
+            min_duration = 0.1, 
+            max_duration = .4,
+            color = rl.YELLOW,
+            drag = 4,
+            size = { 1, 30 },
+            angle_offset = math.PI / 2,
+        )
 
         release_pool(&mines.pool, i)
         i -= 1
@@ -76,15 +156,16 @@ tick_destroyed_mines :: proc(using game : ^Game) {
 
 draw_mines :: proc(using game : Game) {
     for mine in mines.pool.instances[0:mines.pool.count] {
+        pulse :f32= math.sin(math.mod(mine.time, 2) * 0.5 * math.PI)
+
+        // Draw a pulsing damage radius circle
+        rl.DrawCircleV(mine.pos, MINE_DAMAGE_RADIUS, rl.ColorAlpha(rl.RED, pulse * 0.025))
+
+        // Draw the body of the mine
         rl.DrawCircleV(mine.pos, mine.radius, rl.DARKGRAY)
-    }
 
-    for mine in mines.pool.instances[0:mines.pool.count] {
-        flash := math.mod(mine.time, 1) > 0.5
-
-        //if flash do rl.DrawCircleV(mine.pos, MINE_RADIUS * 8, { 255, 0, 0, 10 })
-
-        col := rl.RED if flash else rl.Color{ 100, 0, 0, 255 }
+        // Draw a blinking red light in the middle of the mine
+        col := rl.RED if math.mod(mine.time, 1) > 0.5 else rl.Color{ 100, 0, 0, 255 }
         rl.DrawCircleV(mine.pos, 5, col)
     }
 }

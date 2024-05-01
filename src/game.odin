@@ -30,6 +30,7 @@ Game :: struct {
     request_restart : bool,         // Anything can set this to true and the game will be restarted at the end of the current frame.
     
     pixel_particles         : ParticleSystem,   // Pool of particles, which will be drawn to the screen as pixels.
+    circle_particles        : ParticleSystem,   // Pool of particles, which will be drawn to the screen as circles.
     line_particles          : ParticleSystem,   // Another pool of particles, which will be drawn to the screen as lines.
     line_trail_particles    : ParticleSystem,   // This particle system will be drawn to a special trails render texture
                                                 // Note: Other stuff is actually being drawn to the trail rt as well now, just at a very low opacity to remain subtle
@@ -168,6 +169,7 @@ tick_game :: proc(using game : ^Game) {
         tick_destroyed_mines(game)
 
         tick_particles(&pixel_particles, game_delta_time)
+        tick_particles(&circle_particles, game_delta_time)
         tick_particles(&line_particles, game_delta_time)    
         tick_particles(&line_trail_particles, game_delta_time)    
 
@@ -193,6 +195,7 @@ draw_game :: proc(using game : ^Game) {
             draw_particles_as_lines(&line_trail_particles)
             // eh go ahead and draw the other particles to the trail map as well :P. just with low opacity
             draw_particles_as_pixels(&pixel_particles, 0.5)
+            draw_particles_as_circles(&circle_particles, 0.5)
             draw_particles_as_lines(&line_particles, 0.5)
             draw_projectiles(&projectiles, 0.5)
             draw_projectiles(&enemy_projectiles, 0.5)
@@ -226,11 +229,10 @@ draw_game :: proc(using game : ^Game) {
         draw_pickups(&pickups)
         draw_player_weapon(game)
         draw_particles_as_pixels(&pixel_particles)
+        draw_particles_as_circles(&circle_particles)
         draw_particles_as_lines(&line_particles)
 
-        if !tutorial.complete {
-            draw_tutorial(game)
-        }
+        if !tutorial.complete do draw_tutorial(game)
         else {
             draw_game_gui(game)
             draw_waves_gui(&waves, game_time)

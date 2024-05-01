@@ -199,6 +199,19 @@ tick_player :: proc(using game : ^Game) {
     player.dash_vel = smooth_damp(player.dash_vel, { 0, 0 }, &player.dash_ref, player.dash_dur, game_delta_time)
 }
 
+tick_killed_player :: proc(using game : ^Game) {
+    // If the players health is 0, indicate they are no longer alive and spawn some death particles.
+    if player.hth <= 0 && player.alive {
+        player.alive = false
+        player.hth = 0
+
+        spawn_particles_triangle_segments(&line_particles, get_player_corners(player), rl.RAYWHITE, player.vel, 0.4, 2.0, 50, 150, 2, 2, 3)
+        spawn_particles_burst(&line_trail_particles, player.pos, player.vel, 128, 200, 1200, 0.2, 1.5, rl.RAYWHITE, drag = 3)
+        spawn_particles_burst(&line_particles, player.pos, player.vel, 64, 100, 1500, 0.3, 1.5, rl.SKYBLUE, drag = 2)
+        try_play_sound(&audio, audio.die)
+    }
+}
+
 draw_player :: proc(using game : ^Game) {
     if !player.alive do return
     radius  := player.siz / 2
