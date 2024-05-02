@@ -41,8 +41,8 @@ Game :: struct {
     screenshakes            : ScreenShakes,
     render_target_a         : rl.RenderTexture2D,   // The render texture the game is rendered to.
     render_target_b         : rl.RenderTexture2D,   // Another render texture the game is rendered to (double-buffered for post-processing)
-    trail_render_target_a   : rl.RenderTexture2D,   // Render target which trails can be drawn to.
-    trail_render_target_b   : rl.RenderTexture2D,   // Another render target which trails can be drawn to (double-buffered for advection, dispersal)
+    smoke_render_target_a   : rl.RenderTexture2D,   // Render target which smoke trails can be drawn to.
+    smoke_render_target_b   : rl.RenderTexture2D,   // Another render target which smoke trails can be drawn to (double-buffered for advection, dispersal)
     shaders                 : map[string]rl.Shader, // Named shaders
 }
 
@@ -55,16 +55,16 @@ load_game :: proc(using game : ^Game) {
     render_target_b = rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight())
     // The "trail_render_target" textures have specific gameplay elements drawn to them. but rather than being cleared each frame they fade/advect over time.
     // This creates a turbulent trail effect in the texture which is then drawn to the primary render_target before foreground elements.
-    trail_render_target_a = rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight())
-    trail_render_target_b = rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight())
+    smoke_render_target_a = rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight())
+    smoke_render_target_b = rl.LoadRenderTexture(rl.GetScreenWidth(), rl.GetScreenHeight())
 
     rl.SetTextureWrap(render_target_a.texture, .CLAMP)
     rl.SetTextureWrap(render_target_b.texture, .CLAMP)
-    rl.SetTextureWrap(trail_render_target_a.texture, .CLAMP)
-    rl.SetTextureWrap(trail_render_target_b.texture, .CLAMP)
+    rl.SetTextureWrap(smoke_render_target_a.texture, .CLAMP)
+    rl.SetTextureWrap(smoke_render_target_b.texture, .CLAMP)
     // The trail render textures use bilinear sampling as a quick and dirty way to accumulate blur.
-    rl.SetTextureFilter(trail_render_target_a.texture, .BILINEAR)
-    rl.SetTextureFilter(trail_render_target_b.texture, .BILINEAR)
+    rl.SetTextureFilter(smoke_render_target_a.texture, .BILINEAR)
+    rl.SetTextureFilter(smoke_render_target_b.texture, .BILINEAR)
 
     request_restart = false
     game_time = 0
@@ -105,13 +105,14 @@ load_game :: proc(using game : ^Game) {
 unload_game :: proc(using game : ^Game) {
     rl.UnloadRenderTexture(render_target_a)
     rl.UnloadRenderTexture(render_target_b)
-    rl.UnloadRenderTexture(trail_render_target_a)
-    rl.UnloadRenderTexture(trail_render_target_b)
+    rl.UnloadRenderTexture(smoke_render_target_a)
+    rl.UnloadRenderTexture(smoke_render_target_b)
     
     for _, shader in shaders do rl.UnloadShader(shader)
 
     unload_action_stack(&on_calc_time_scale)
 
+    unload_stars(&stars)
     unload_player(&player)
     unload_weapon(&weapon)
     unload_projectiles(&projectiles)
@@ -192,14 +193,14 @@ draw_game :: proc(using game : ^Game) {
     // First draw stuff that should have a turbulent smoke trail to a render texture
     {
         // Start by blitting from the previous render target to the next to step the smoke "simulation" forward.
-        blit(trail_render_target_a, trail_render_target_b, shaders["TrailFade"], 
+        blit(smoke_render_target_a, smoke_render_target_b, shaders["TrailFade"], 
             { "time", f32(game_time) },
             { "dt", rl.GetFrameTime() }, 
             { "res", [2]i32 { rl.GetScreenWidth(), rl.GetScreenHeight() }},
         )
 
         // Then draw everything that should have a trail.
-        rl.BeginTextureMode(trail_render_target_b)
+        rl.BeginTextureMode(smoke_render_target_b)
         {
             // Offset everything that's drawn by the current screenshake amount
             rl.rlTranslatef(screenshake.x, screenshake.y, 0)
@@ -216,7 +217,7 @@ draw_game :: proc(using game : ^Game) {
         rl.EndTextureMode()
 
         // Finally swap the render textures so that the destination is the source for the next tick.
-        swap(&trail_render_target_b, &trail_render_target_a)
+        swap(&smoke_render_target_b, &smoke_render_target_a)
     }
 
     // Render game
@@ -231,7 +232,7 @@ draw_game :: proc(using game : ^Game) {
         draw_stars(&stars)
 
         // The trails are drawn right after the background so that everything else draws on top.
-        rl.DrawTextureRec(trail_render_target_a.texture, rl.Rectangle{ 0, 0, f32(render_target_a.texture.width), -f32(render_target_a.texture.height) }, rl.Vector2{ 0, 0 }, rl.WHITE);
+        rl.DrawTextureRec(smoke_render_target_a.texture, rl.Rectangle{ 0, 0, f32(render_target_a.texture.width), -f32(render_target_a.texture.height) }, rl.Vector2{ 0, 0 }, rl.WHITE);
 
         // Offset everything else that's drawn by the current screenshake amount
         // The trails in the render texture being drawn on the line above don't need to be translated because everything drawn to it was also translated.

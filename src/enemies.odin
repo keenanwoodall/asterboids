@@ -591,26 +591,3 @@ separation :: proc (index : int, enemies : []Enemy, grid : HGrid(int)) -> rl.Vec
 
     return steering
 }
-
-// Utility function to set the length of a vector
-set_length :: proc(v : rl.Vector2, length : f32) -> rl.Vector2 {
-    return linalg.normalize(v) * length
-}
-
-// Utility function to limit the length of a vector
-limit_length :: proc(v : rl.Vector2, limit : f32) -> rl.Vector2 {
-    len := linalg.length(v)
-    if len == 0 || len <= limit {
-        return v
-    }
-
-    dir := v / len
-    return dir * limit
-}
-
-// Utility function to safely normalize a vector
-safe_normalize :: proc(v : rl.Vector2) -> (rl.Vector2, bool) {
-    length := linalg.length(v)
-    if length > 0 do return v / length, true
-    else do return 0, false
-}

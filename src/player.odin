@@ -95,6 +95,8 @@ tick_player :: proc(using game : ^Game) {
         thrust      := rl.IsKeyDown(.UP) || rl.IsKeyDown(.W);
         dash        := rl.IsKeyPressed(.LEFT_SHIFT)
 
+        dash_speed := linalg.length(player.dash_vel)
+
         if turn_left {
             player.avel -= player.trq * game_delta_time
         }
@@ -129,7 +131,7 @@ tick_player :: proc(using game : ^Game) {
                     min_lifetime    = 0.1,
                     max_lifetime    = 0.3,
                     size            = { 1, 10 },
-                    color           = rl.ORANGE,
+                    color           = rl.ORANGE if dash_speed < 1 else rl.SKYBLUE,
                     angle           = .3,
                     drag            = 5,
                 )
@@ -145,8 +147,6 @@ tick_player :: proc(using game : ^Game) {
             add_pool(&screenshakes.pool, ScreenShake { start_time = game_time, decay = 4, freq = 16, force = -player_dir * 8 })
         }
 
-        dash_speed := linalg.length(player.dash_vel)
-
         if dash_speed > 1 {
             emit_count := tick_timer(&player.dash_particle_timer, game_delta_time)
             spawn_particles_direction(&pixel_particles, 
@@ -157,7 +157,7 @@ tick_player :: proc(using game : ^Game) {
                 max_speed = dash_speed * 0.4,
                 min_lifetime = 0.1,
                 max_lifetime = 1.2,
-                color = rl.ORANGE,
+                color = rl.BLUE,
                 angle = linalg.to_radians(f32(10)),
                 drag = 2,
                 size = { 1, 30 },

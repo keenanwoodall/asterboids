@@ -22,3 +22,26 @@ inv_sqr_interp :: proc(inner_val, outer_val, t: f32) -> f32 {
 rand_dir :: proc() -> rl.Vector2 {
     return rl.Vector2Rotate(rl.Vector2 {0, 1}, rand.float32_range(0, math.TAU))
 }
+
+// set the length of a vector
+set_length :: proc(v : rl.Vector2, length : f32) -> rl.Vector2 {
+    return linalg.normalize(v) * length
+}
+
+// Limit the length of a vector
+limit_length :: proc(v : rl.Vector2, limit : f32) -> rl.Vector2 {
+    len := linalg.length(v)
+    if len == 0 || len <= limit {
+        return v
+    }
+
+    dir := v / len
+    return dir * limit
+}
+
+// Safely normalize a vector
+safe_normalize :: proc(v : rl.Vector2) -> (rl.Vector2, bool) {
+    length := linalg.length(v)
+    if length > 0 do return v / length, true
+    else do return 0, false
+}
