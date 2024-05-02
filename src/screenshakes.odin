@@ -25,9 +25,8 @@ unload_screenshakes :: proc(using screenshakes : ^ScreenShakes) {
 
 shake :: proc(using screenshake : ScreenShake, time : f64) -> (amplitude : rl.Vector2, energy : f32) {
     shake_time := f32(time - start_time)
-    amplitude = force * math.cos(freq * shake_time) // Oscillating shake effect
-    energy = math.exp(-decay * shake_time) // Exponential decay (https://www.desmos.com/calculator/ko3q2jgnuu)
-
+    amplitude = force * math.sin(freq * shake_time) // Oscillating shake effect
+    energy = math.exp(-decay * shake_time) // Exponential decay (https://www.desmos.com/calculator/ko3q2jgnu
     return
 }
 

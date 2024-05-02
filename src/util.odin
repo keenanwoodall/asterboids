@@ -18,3 +18,7 @@ inv_sqr_interp :: proc(inner_val, outer_val, t: f32) -> f32 {
         return (inner_val - outer_val) * (factor * factor) + outer_val;
     }
 }
+
+rand_dir :: proc() -> rl.Vector2 {
+    return rl.Vector2Rotate(rl.Vector2 {0, 1}, rand.float32_range(0, math.TAU))
+}

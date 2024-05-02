@@ -332,25 +332,28 @@ release_enemy :: proc(index : int, using enemies : ^Enemies) {
 // Rather than releasing killed enemies immediately, they are marked as "kill"ed.
 // There could be multiple ways for an enemy to be killed, 
 // so this gives us a centralized place to handle their death, spawn vfx/pickups etc
-tick_killed_enemies :: proc(using enemies : ^Enemies, pickups : ^Pickups, ps : ^ParticleSystem) {
-    for i := 0; i < count; i += 1 {
-        using enemy := instances[i]
+tick_killed_enemies :: proc(using game : ^Game) {
+    for i := 0; i < enemies.count; i += 1 {
+        using enemy := enemies.instances[i]
         if hp < 0 || kill {
-            release_enemy(i, enemies)
+            release_enemy(i, &enemies)
             i -= 1
-            kill_count += 1
+            enemies.kill_count += 1
 
             // Some things like enemy color/loot is stored per archetype and needs to be fetched
             archetype := Archetypes[id]
             col := archetype.color
             loot := archetype.loot
 
-            spawn_particles_triangle_segments(ps, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
+            spawn_particles_triangle_segments(&line_particles, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
 
             pickup_count : u8 = u8(rand.int_max(int(loot) + 1)) // this casting is annoying
             for i in 0..<pickup_count {
-                spawn_pickup(pickups, pos, PickupType.XP if rand.float32_range(0, 1) > 0.4 else PickupType.Health)
+                spawn_pickup(&pickups, pos, PickupType.XP if rand.float32_range(0, 1) > 0.4 else PickupType.Health)
             }
+
+            // Screenshake
+            add_pool(&screenshakes.pool, ScreenShake { start_time = game_time, decay = 7, freq = 16, force = rand_dir() * enemy.siz })
         }
     }
 }

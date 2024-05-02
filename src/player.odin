@@ -137,8 +137,12 @@ tick_player :: proc(using game : ^Game) {
         }
 
         if dash {
-            player.dash_vel = get_player_dir(player) * player.dash_spd
+            player_dir := get_player_dir(player)
+            player.dash_vel = player_dir * player.dash_spd
+            // sfx
             try_play_sound(&audio, audio.dash)
+            // screenshake
+            add_pool(&screenshakes.pool, ScreenShake { start_time = game_time, decay = 4, freq = 16, force = -player_dir * 8 })
         }
 
         dash_speed := linalg.length(player.dash_vel)

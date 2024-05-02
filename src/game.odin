@@ -168,7 +168,7 @@ tick_game :: proc(using game : ^Game) {
         tick_projectiles_mine_collision(&projectiles, &mines, &pixel_particles, &audio)
         
         tick_killed_player(game)
-        tick_killed_enemies(&enemies, &pickups, &line_particles)
+        tick_killed_enemies(game)
         tick_destroyed_mines(game)
 
         tick_particles(&pixel_particles, game_delta_time)
@@ -183,8 +183,6 @@ tick_game :: proc(using game : ^Game) {
 // Draws the various parts of the game
 draw_game :: proc(using game : ^Game) {
     screenshake := sum_shake(&screenshakes, game_time)
-    //TODO: DELETE ME
-    //shake({ 0, 10 }, f32(game.game_time - game.weapon.last_shoot_time), 50, 6)
 
     // First draw stuff that should have a turbulent smoke trail to a render texture
     {

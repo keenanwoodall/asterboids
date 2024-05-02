@@ -26,9 +26,6 @@ float2  :: [2]f32
 // For example the following grid stores integers in each cell:
 //      grid : HGrid(int)
 //
-// You can get the data stored in a specific cell via these two utility functions
-//      cell_coord                      := get_cell_coord(grid, rl.GetMousePosition())
-//      cell_data_under_mouse, exists   := get_cell_data(grid, cell_coord)
 HGrid :: struct($T : typeid) {
     cells           : map[int2][dynamic]T,
     cell_size       : f32,
