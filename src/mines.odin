@@ -8,7 +8,7 @@ import rl "vendor:raylib"
 
 MINE_RADIUS             :: 10
 MINE_RADIUS_SQR         :: MINE_RADIUS * MINE_RADIUS
-MINE_DAMAGE_RADIUS      :: 175
+MINE_DAMAGE_RADIUS      :: 200
 MINE_DAMAGE_RADIUS_SQR  :: MINE_DAMAGE_RADIUS * MINE_DAMAGE_RADIUS
 MINE_DAMAGE             :: 100
 MINE_KNOCKBACK          :: 2000
@@ -114,12 +114,26 @@ tick_destroyed_mines :: proc(using game : ^Game) {
                         // Note: They should instead have health that's comparable to the player so that this is not necessary.
                         // Damage falloff is done by using the inverse square law
                         n_damage := inv_sqr_interp(1, 0, n_dist) // 1 -> 0
-                        damage := int(math.floor(n_damage * 10)) // 10 -> 0
+                        damage := int(math.floor(n_damage * 15)) // 10 -> 0
                         enemy.hp -= damage
                         enemy.vel += linalg.normalize(enemy.pos - mine.pos) * MINE_KNOCKBACK * n_damage
                     }
                 }   
             }
+        }
+
+        // Damage nearby player
+        damage_player: if player.alive {
+            dist := linalg.distance(player.pos, mine.pos)
+            if dist > MINE_DAMAGE_RADIUS {
+                break damage_player
+            }
+
+            n_dist := dist / MINE_DAMAGE_RADIUS
+            n_damage := inv_sqr_interp(1, 0, n_dist) // 1 -> 0
+            damage := int(math.floor(n_damage * 120)) // 10 -> 0
+            player.hth -= damage
+            player.vel += linalg.normalize(player.pos - mine.pos) * MINE_KNOCKBACK * n_damage
         }
 
         // Spawn vfx
@@ -152,6 +166,11 @@ tick_destroyed_mines :: proc(using game : ^Game) {
 
         // Play sfx
         try_play_sound(&audio, audio.mine_explosion)
+
+        // Screenshake
+        player_dist := linalg.distance(player.pos, mine.pos)
+        player_dir := (player.pos - mine.pos) / player_dist
+        add_pool(&screenshakes.pool, ScreenShake { start_time = game_time, decay = 2, freq = 24, force = -player_dir * math.exp(-.0025 * player_dist) * 30 })
 
         // Release the mine
         release_pool(&mines.pool, i)

@@ -38,6 +38,7 @@ Game :: struct {
 
     on_calc_time_scale      : ActionStack(f32, Game),
 
+    screenshakes            : ScreenShakes,
     render_target_a         : rl.RenderTexture2D,   // The render texture the game is rendered to.
     render_target_b         : rl.RenderTexture2D,   // Another render texture the game is rendered to (double-buffered for post-processing)
     trail_render_target_a   : rl.RenderTexture2D,   // Render target which trails can be drawn to.
@@ -91,6 +92,7 @@ load_game :: proc(using game : ^Game) {
     init_projectiles(&enemy_projectiles)
     init_pickups(&pickups)
     init_stars(&stars)
+    init_screenshakes(&screenshakes)
     load_audio(&audio)
 
     // Enable tooltips which are used by the level-up gui
@@ -119,6 +121,7 @@ unload_game :: proc(using game : ^Game) {
     unload_waves(&waves)
     unload_pickups(&pickups)
     unload_audio(&audio)
+    unload_screenshakes(&screenshakes)
     unload_mods()
 }
 
@@ -149,8 +152,8 @@ tick_game :: proc(using game : ^Game) {
         // Only tick the waves system if the player is alive and the tutorial is complete
         if player.alive && tutorial.complete do tick_waves(game)
 
-        tick_enemies(game)
         tick_mines(game)
+        tick_enemies(game)
         tick_player_enemy_collision(game)
         tick_player_mines_collision(game)
 
@@ -179,6 +182,10 @@ tick_game :: proc(using game : ^Game) {
 
 // Draws the various parts of the game
 draw_game :: proc(using game : ^Game) {
+    screenshake := sum_shake(&screenshakes, game_time)
+    //TODO: DELETE ME
+    //shake({ 0, 10 }, f32(game.game_time - game.weapon.last_shoot_time), 50, 6)
+
     // First draw stuff that should have a turbulent smoke trail to a render texture
     {
         // Start by blitting from the previous render target to the next to step the smoke "simulation" forward.
@@ -191,6 +198,9 @@ draw_game :: proc(using game : ^Game) {
         // Then draw everything that should have a trail.
         rl.BeginTextureMode(trail_render_target_b)
         {
+            // Offset everything that's drawn by the current screenshake amount
+            rl.rlTranslatef(screenshake.x, screenshake.y, 0)
+
             draw_player_trail(game)
             draw_particles_as_lines(&line_trail_particles)
             // eh go ahead and draw the other particles to the trail map as well :P. just with low opacity
@@ -212,13 +222,17 @@ draw_game :: proc(using game : ^Game) {
         // This allows us to apply post processing shaders like a vignette to the texture before drawing it to the screen. 
         rl.BeginTextureMode(render_target_a)
         defer rl.EndTextureMode()
-        
+
         // Draw a subtle vertical gradient for the background, and then draw stars on top
         rl.DrawRectangleGradientV(0, 0, rl.GetScreenWidth(), rl.GetScreenHeight(), {10, 3, 16, 255}, {5, 10, 20, 255})
         draw_stars(&stars)
 
         // The trails are drawn right after the background so that everything else draws on top.
         rl.DrawTextureRec(trail_render_target_a.texture, rl.Rectangle{ 0, 0, f32(render_target_a.texture.width), -f32(render_target_a.texture.height) }, rl.Vector2{ 0, 0 }, rl.WHITE);
+
+        // Offset everything else that's drawn by the current screenshake amount
+        // The trails in the render texture being drawn on the line above don't need to be translated because everything drawn to it was also translated.
+        rl.rlTranslatef(screenshake.x, screenshake.y, 0)
 
         // Now that the smoke has been drawn, we can draw the rest of the game on top.
         draw_mines(game^)
