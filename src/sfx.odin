@@ -111,13 +111,6 @@ tick_audio :: proc(using audio : ^Audio) {
     rl.UpdateMusicStream(music)
     rl.UpdateMusicStream(tutorial)
     rl.UpdateMusicStream(thrust)
-
-    if rl.IsKeyPressed(.M) {
-        if rl.IsMusicStreamPlaying(music) {
-            rl.PauseMusicStream(music)
-        } 
-        else do rl.ResumeMusicStream(music)
-    }
 }
 
 // Utility function to play a sound. Sound will not play if it was last played within the debounce time.

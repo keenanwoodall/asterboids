@@ -101,8 +101,6 @@ tick_player_mines_collision :: proc(using game : ^Game) {
     for &mine in mines.pool.instances[0:mines.pool.count] {
         for corner in player_corners {
             if linalg.length2(corner - mine.pos) < mine_radius_sqr {
-                player.hth -= MINE_DAMAGE
-                player.vel += linalg.normalize(player.pos - mine.pos) * player.knockback
                 mine.destroyed = true
             }
         }

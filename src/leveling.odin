@@ -28,9 +28,6 @@ init_leveling :: proc(using leveling : ^Leveling) {
 
 // Tick functions are called every frame by the game
 tick_leveling :: proc(using game : ^Game) {
-    // Level up automatically when debug key is pressed for testing
-    if rl.IsKeyPressed(.L) do leveling.xp = get_target_xp(leveling.lvl)
-
     // Check if our current xp is enough to level up
     if leveling.xp >= get_target_xp(leveling.lvl) {
         // If so, level up, reset xp, generate random level up choices

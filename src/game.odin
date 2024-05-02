@@ -140,6 +140,8 @@ tick_game :: proc(using game : ^Game) {
         tick_tutorial(game)
     }
 
+    tick_dev_commands(game)
+
     // Run the game like normal unless the player is selecting a level-up option, in which case the gameplay should remain frozen.
     if !leveling.leveling_up {
         // Tick all the things!
@@ -167,14 +169,17 @@ tick_game :: proc(using game : ^Game) {
         tick_projectiles_enemy_collision(&projectiles, &enemies, &pixel_particles, &audio)
         tick_projectiles_mine_collision(&projectiles, &mines, &pixel_particles, &audio)
         
-        tick_killed_player(game)
+        // Don't allow the player to die during the tutorial
+        if tutorial.complete do tick_killed_player(game)
+        else do player.hth = player.max_hth
+
         tick_killed_enemies(game)
         tick_destroyed_mines(game)
 
         tick_particles(&pixel_particles, game_delta_time)
         tick_particles(&circle_particles, game_delta_time)
         tick_particles(&line_particles, game_delta_time)    
-        tick_particles(&line_trail_particles, game_delta_time)    
+        tick_particles(&line_trail_particles, game_delta_time)
 
         game_time += f64(game_delta_time)
     }
