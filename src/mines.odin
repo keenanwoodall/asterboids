@@ -117,8 +117,6 @@ tick_destroyed_mines :: proc(using game : ^Game) {
                         damage := int(math.floor(n_damage * 10)) // 10 -> 0
                         enemy.hp -= damage
                         enemy.vel += linalg.normalize(enemy.pos - mine.pos) * MINE_KNOCKBACK * n_damage
-
-                        fmt.printfln("HP: %i, DMG: %i", enemy.hp, damage)
                     }
                 }   
             }

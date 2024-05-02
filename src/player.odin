@@ -120,7 +120,7 @@ tick_player :: proc(using game : ^Game) {
                 emit_count  := tick_timer(&player.thruster_particle_timer, game_delta_time)
 
                 spawn_particles_direction(
-                    particle_system = &line_trail_particles, 
+                    particle_system = &line_particles, 
                     center          = get_player_base(player),
                     direction       = -dir, 
                     count           = emit_count, 
@@ -129,7 +129,7 @@ tick_player :: proc(using game : ^Game) {
                     min_lifetime    = 0.1,
                     max_lifetime    = 0.3,
                     size            = { 1, 10 },
-                    color           = rl.Color{ 102, 191, 255, 50 },
+                    color           = rl.ORANGE,
                     angle           = .3,
                     drag            = 5,
                 )
@@ -153,7 +153,7 @@ tick_player :: proc(using game : ^Game) {
                 max_speed = dash_speed * 0.4,
                 min_lifetime = 0.1,
                 max_lifetime = 1.2,
-                color = rl.SKYBLUE, // Sky blue + some brighness
+                color = rl.ORANGE,
                 angle = linalg.to_radians(f32(10)),
                 drag = 2,
                 size = { 1, 30 },
@@ -206,7 +206,7 @@ tick_killed_player :: proc(using game : ^Game) {
         player.hth = 0
 
         spawn_particles_triangle_segments(&line_particles, get_player_corners(player), rl.RAYWHITE, player.vel, 0.4, 2.0, 50, 150, 2, 2, 3)
-        spawn_particles_burst(&line_trail_particles, player.pos, player.vel, 128, 200, 1200, 0.2, 1.5, rl.RAYWHITE, drag = 3)
+        spawn_particles_burst(&line_trail_particles, player.pos, player.vel, 128, 200, 1200, 0.2, 1.5, rl.ORANGE, drag = 3)
         spawn_particles_burst(&line_particles, player.pos, player.vel, 64, 100, 1500, 0.3, 1.5, rl.SKYBLUE, drag = 2)
         try_play_sound(&audio, audio.die)
     }
@@ -232,7 +232,13 @@ draw_player :: proc(using game : ^Game) {
 draw_player_trail :: proc(using game : ^Game) {
     if !player.alive do return
 
-    color := rl.BLUE
+    r := rand.float32_range(0, 1)
+    t := rl.ColorFromNormalized({r,r,r,r}) // have to pass t on each channel to linalg.lerp
+
+    color_a := rl.ColorNormalize(rl.BLUE)
+    color_b := rl.ColorNormalize(rl.SKYBLUE)
+
+    color := rl.ColorFromNormalized(linalg.lerp(color_a, color_b, r))
     speed      := linalg.length(player.vel)
     dash_speed := linalg.length(player.dash_vel)
     color.a = 255 if dash_speed > 0.75 else 10
