@@ -105,7 +105,11 @@ To ease the gameplay testing process there are a few keyboard shortcuts:
 - `R` - restart
 - `N` - clear current wave and spawn next. helpful for quickly skipping ahead to waves with more enemies
 - `L` - level up immediately
-- `M` - mute music
+- `M` - toggle mute music
+- `Num 1` - spawn small enemy
+- `Num 2` - spawn medium enemy
+- `Num 3` - spawn large enemy
+- `Num 4` - spawn mine
 
 ## Editing
 
@@ -135,5 +139,8 @@ If you're looking for some low-hanging fruit here are some fun/easy things you c
 
   ![asterboid_eCDUk3cDb3](https://github.com/keenanwoodall/asterboid/assets/9631530/a000c040-f3b7-4f50-9895-fd72252b92f0)
 
+  ### Mines and Screen Shake
+
+  ![asterboid_mD9yjzqxVA](https://github.com/keenanwoodall/asterboids/assets/9631530/daf0358c-ae28-4d18-821e-aa941656839e)
   
 </details>
