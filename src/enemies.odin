@@ -21,7 +21,7 @@ ENEMY_SPEED             :: 2500
 ENEMY_TURN_SPEED        :: 10
 ENEMY_FORCE             :: 500
 ENEMY_ALIGNMENT_RADIUS  :: 50
-ENEMY_COHESION_RADIUS   :: 50
+ENEMY_COHESION_RADIUS   :: 70
 ENEMY_SEPARATION_RADIUS :: 20
 ENEMY_FOLLOW_FACTOR     :: 2.0
 ENEMY_ALIGNMENT_FACTOR  :: 1.0
@@ -105,7 +105,7 @@ Archetypes := map[EnemyArchetype]Archetype {
         } 
     },
     .Large = { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 90, spd = 1, loot = 7, color = rl.RED,
-        rate = 0.2,
+        rate = 0.1,
         action = proc(enemy : ^Enemy, game : ^Game) {
             // Don't spawn any mines if offscreen
             if enemy.pos.x < 0 || enemy.pos.x > f32(rl.GetScreenWidth()) || enemy.pos.y < 0 || enemy.pos.y > f32(rl.GetScreenHeight()) {
@@ -332,25 +332,28 @@ release_enemy :: proc(index : int, using enemies : ^Enemies) {
 // Rather than releasing killed enemies immediately, they are marked as "kill"ed.
 // There could be multiple ways for an enemy to be killed, 
 // so this gives us a centralized place to handle their death, spawn vfx/pickups etc
-tick_killed_enemies :: proc(using enemies : ^Enemies, pickups : ^Pickups, ps : ^ParticleSystem) {
-    for i := 0; i < count; i += 1 {
-        using enemy := instances[i]
+tick_killed_enemies :: proc(using game : ^Game) {
+    for i := 0; i < enemies.count; i += 1 {
+        using enemy := enemies.instances[i]
         if hp < 0 || kill {
-            release_enemy(i, enemies)
+            release_enemy(i, &enemies)
             i -= 1
-            kill_count += 1
+            enemies.kill_count += 1
 
             // Some things like enemy color/loot is stored per archetype and needs to be fetched
             archetype := Archetypes[id]
             col := archetype.color
             loot := archetype.loot
 
-            spawn_particles_triangle_segments(ps, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
+            spawn_particles_triangle_segments(&line_particles, get_enemy_corners(enemy), col, vel, 0.5, 1.0, 50, 150, 2, 10, 3)
 
             pickup_count : u8 = u8(rand.int_max(int(loot) + 1)) // this casting is annoying
             for i in 0..<pickup_count {
-                spawn_pickup(pickups, pos, PickupType.XP if rand.float32_range(0, 1) > 0.4 else PickupType.Health)
+                spawn_pickup(&pickups, pos, PickupType.XP if rand.float32_range(0, 1) > 0.4 else PickupType.Health)
             }
+
+            // Screenshake
+            add_pool(&screenshakes.pool, ScreenShake { start_time = game_time, decay = 7, freq = 16, force = rand_dir() * enemy.siz })
         }
     }
 }
@@ -587,27 +590,4 @@ separation :: proc (index : int, enemies : []Enemy, grid : HGrid(int)) -> rl.Vec
     }
 
     return steering
-}
-
-// Utility function to set the length of a vector
-set_length :: proc(v : rl.Vector2, length : f32) -> rl.Vector2 {
-    return linalg.normalize(v) * length
-}
-
-// Utility function to limit the length of a vector
-limit_length :: proc(v : rl.Vector2, limit : f32) -> rl.Vector2 {
-    len := linalg.length(v)
-    if len == 0 || len <= limit {
-        return v
-    }
-
-    dir := v / len
-    return dir * limit
-}
-
-// Utility function to safely normalize a vector
-safe_normalize :: proc(v : rl.Vector2) -> (rl.Vector2, bool) {
-    length := linalg.length(v)
-    if length > 0 do return v / length, true
-    else do return 0, false
 }

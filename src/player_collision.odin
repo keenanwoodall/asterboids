@@ -40,6 +40,9 @@ tick_player_enemy_collision :: proc(using game : ^Game) {
 
             enemy.vel = -knock_back_dir * player.knockback
 
+            // Screenshake
+            add_pool(&screenshakes.pool, ScreenShake { start_time = game_time, decay = 2, freq = 12, force = -knock_back_dir * 8 })
+
             break
         }
     }
@@ -76,6 +79,9 @@ tick_player_projectile_collision :: proc(using game : ^Game) {
                 player.hth -= ENEMY_PROJECTILE_DAMAGE
             }
 
+            // Screenshake
+            add_pool(&screenshakes.pool, ScreenShake { start_time = game_time, decay = 2.5, freq = 18, force = knock_back_dir * 6 })
+
             release_projectile(i, &enemy_projectiles)
             i -= 1
     
@@ -95,8 +101,6 @@ tick_player_mines_collision :: proc(using game : ^Game) {
     for &mine in mines.pool.instances[0:mines.pool.count] {
         for corner in player_corners {
             if linalg.length2(corner - mine.pos) < mine_radius_sqr {
-                player.hth -= MINE_DAMAGE
-                player.vel += linalg.normalize(player.pos - mine.pos) * player.knockback
                 mine.destroyed = true
             }
         }

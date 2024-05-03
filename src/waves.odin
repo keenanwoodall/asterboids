@@ -48,13 +48,6 @@ tick_waves :: proc(using game : ^Game) {
     // If there are 0 enemies, increment the "no enemies" timer.
     if enemies.count == 0 do waves.no_enemies_timer += game_delta_time
 
-    // Pressing N skips the current wave and spawns the next one immediately
-    // Used when testing to quickly skip to harder waves.
-    if rl.IsKeyPressed(.N) {
-        enemies.count = 0
-        waves.no_enemies_timer = 10000
-    }
-
     // How long has it been since the last wave of enemies was spawned?
     elapsed := game_time - waves.last_wave_time
 
