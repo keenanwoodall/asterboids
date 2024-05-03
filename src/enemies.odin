@@ -105,7 +105,7 @@ Archetypes := map[EnemyArchetype]Archetype {
         } 
     },
     .Large = { size = ENEMY_SIZE * 2.5, hp = 7, dmg = 90, spd = 1, loot = 7, color = rl.RED,
-        rate = 0.2,
+        rate = 0.1,
         action = proc(enemy : ^Enemy, game : ^Game) {
             // Don't spawn any mines if offscreen
             if enemy.pos.x < 0 || enemy.pos.x > f32(rl.GetScreenWidth()) || enemy.pos.y < 0 || enemy.pos.y > f32(rl.GetScreenHeight()) {

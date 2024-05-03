@@ -133,6 +133,10 @@ tick_game :: proc(using game : ^Game) {
     execute_action_stack(on_calc_time_scale, &time_scale, game)
     game_delta_time = rl.GetFrameTime() * time_scale;
 
+    // This game draws a custom cursor later so we need to hide the OS one.
+    // It would be nice to change the cursor at an OS-level, but raylib does not provide this functionality
+    hide_cursor()
+
     tick_audio(&audio)
     request_restart = rl.IsKeyPressed(.R)
 
@@ -290,6 +294,22 @@ draw_game :: proc(using game : ^Game) {
         // Level up gui is drawn after post processing to help with legibility
         if leveling.leveling_up {
             draw_level_up_gui(game)
+        }
+
+        
+        // Draw cursor
+        if leveling.leveling_up do rl.ShowCursor()
+        else if rl.IsCursorOnScreen() && rl.IsWindowFocused() {
+            center := rl.GetMousePosition()
+            player_dir := get_player_dir(player)
+
+            // Ring
+            shoot_radius_bias :f32= inv_sqr_interp(5, 0, f32((game_time - weapon.last_shoot_time) / weapon.delay))
+            radius := 6 + shoot_radius_bias
+            rl.DrawCircleLinesV(center, radius, rl.ColorAlpha(rl.WHITE, 0.6))
+
+            // Orientation
+            rl.DrawLineV(center, center + player_dir * radius, rl.ColorAlpha(rl.WHITE, 0.4))
         }
     }
 }

@@ -45,3 +45,12 @@ safe_normalize :: proc(v : rl.Vector2) -> (rl.Vector2, bool) {
     if length > 0 do return v / length, true
     else do return 0, false
 }
+
+on_screen :: proc(p : rl.Vector2) -> bool {
+    res         := rl.Vector2{f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())}
+    half_res    := res * 0.5
+
+    center_offset := linalg.abs(p - half_res)
+
+    return center_offset.x > half_res.x || center_offset.y > half_res.y
+}
