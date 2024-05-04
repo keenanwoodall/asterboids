@@ -14,8 +14,8 @@ Leveling :: struct {
     lvl                     : int,
     leveling_up             : bool,
     level_up_choices        : [3]^Modifier,
-    wait_for_mouse_up       : bool,         // Raylib does not take into account if your mouse was pressed off of the button your release over.
-                                            // We'll use this flag to prevent accidental button clicks when releasing the mouse over a level up choice
+    wait_for_mouse_up       : bool,             // Raylib does not take into account if your mouse was pressed off of the button you release over.
+                                                // We'll use this flag to prevent accidental button clicks when releasing the mouse over a level up choice
 }
 
 // Init functions are called when the game first starts.
@@ -35,9 +35,9 @@ tick_leveling :: proc(using game : ^Game) {
         leveling.lvl += 1
         leveling.xp = 0
         
-        choice_a, a_ok := random_modifier(game)
-        choice_b, b_ok := random_modifier(game, choice_a.type)
-        choice_c, c_ok := random_modifier(game, choice_a.type, choice_b.type)
+        choice_a, type_a, a_ok := random_modifier(game)
+        choice_b, type_b, b_ok := random_modifier(game, type_a)
+        choice_c, type_c, c_ok := random_modifier(game, type_a, type_b)
 
         if a_ok && b_ok && c_ok {
             leveling.leveling_up = true
