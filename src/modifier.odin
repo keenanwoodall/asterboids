@@ -147,7 +147,7 @@ ModifierChoices := [ModifierType]Modifier {
             add_action(&game.player.on_tick_player_thruster_particles, proc(emit : ^bool, game : ^Game) {
                 game.player.thruster_proj_timer.rate = 1 / (game.weapon.delay + 0.01)
                 for i : int = 0; i < tick_timer(&game.player.thruster_proj_timer, game.game_delta_time); i+= 1 {
-                    shoot_weapon_projectile(&game.projectiles, game.weapon, get_player_base(game.player), -get_player_dir(game.player), color = rl.SKYBLUE, spread_factor = 0, spread_bias = 0.3)
+                    shoot_weapon(&game.projectiles, game.weapon, get_player_base(game.player), -get_player_dir(game.player), color = rl.SKYBLUE, spread_factor = 0, spread_bias = 0.3)
                 }
             })
         }
