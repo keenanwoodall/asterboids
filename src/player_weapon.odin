@@ -75,10 +75,7 @@ tick_player_weapon :: proc(using game : ^Game) {
         weapon_dir := get_weapon_dir(player)
         emit_muzzle_blast(&pixel_particles, weapon_tip, weapon_dir, rl.BLUE)
 
-        // Spawn `count` number of projectiles.
-        for i in 0..<weapon.count {
-            shoot_weapon(&projectiles, weapon, weapon_tip, weapon_dir)
-        }
+        shoot_weapon(&projectiles, weapon, weapon_tip, weapon_dir)
     }
 }
 
@@ -90,6 +87,12 @@ emit_muzzle_blast :: proc(ps : ^ParticleSystem, pos, dir : rl.Vector2, col : rl.
 }
 
 shoot_weapon :: proc(projectiles : ^Projectiles, weapon : Weapon, pos, dir : rl.Vector2, color := rl.SKYBLUE, spread_factor : f32 = 1, spread_bias : f32 = 0) {
+    for i in 0..<weapon.count {
+        shoot_weapon_projectile(projectiles, weapon, pos, dir, color, spread_factor, spread_bias)
+    }
+}
+
+shoot_weapon_projectile :: proc(projectiles : ^Projectiles, weapon : Weapon, pos, dir : rl.Vector2, color := rl.SKYBLUE, spread_factor : f32 = 1, spread_bias : f32 = 0) {
     dir := rl.Vector2Rotate(dir, rand.float32_range(-(weapon.spread * spread_factor + spread_bias), weapon.spread * spread_factor + spread_bias))
     actual_speed := weapon.speed * rand.float32_range(0.95, 1)
     add_projectile(
